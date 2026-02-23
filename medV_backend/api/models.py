@@ -23,7 +23,7 @@ class User(AbstractUser):
     role = models.CharField(
         max_length=1,
         choices=EmployeeType.choices,
-        default=EmployeeType.PATIENT
+        default=EmployeeType.CLINICIAN
     )
     created_at = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
