@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # TB Multimodal Detection
 
 
@@ -123,3 +124,7 @@ tb_multimodal_detection/
 ### Inference
 - `TBInferenceEngine` - Unified inference interface
 
+=======
+# MediVision
+An AI-powered system for TB detection using CXR images, lab results, and clinical data
+>>>>>>> 708b70ebe0c9f378c409202b5b0090c2451bb34d
