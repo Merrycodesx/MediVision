@@ -20,6 +20,16 @@
             <h2>Patients</h2>
             <button onclick="loadPatients()">Load Patients</button>
             <ul id="patients-list"></ul>
+
+            <div id="patient-detail-section" style="display: none;">
+                <h3>Patient Details</h3>
+                <input type="text" id="detail-name" placeholder="Name">
+                <input type="number" id="detail-age" placeholder="Age">
+                <button onclick="updatePatient()">Update Patient</button>
+                <button onclick="deletePatient()" style="margin-left: 8px;">Delete Patient</button>
+                <p id="patient-detail-message"></p>
+            </div>
+
             <h3>Add Patient</h3>
             <input type="text" id="patient-name" placeholder="Name">
             <input type="number" id="patient-age" placeholder="Age">
