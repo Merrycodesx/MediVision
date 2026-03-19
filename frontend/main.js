@@ -1,13 +1,17 @@
-import { initAuth, authUI } from './features/auth/index.js';
-import { patientsUI, initPatients } from './features/patients/index.js';
-import { cxrUI, initCXR } from './features/cxr/index.js';
-import { labUI, initLab } from './features/lab/index.js';
-import { fusionUI, initFusion } from './features/fusion/index.js';
-import { reportingUI, initReporting } from './features/reporting/index.js';
-import { initOffline } from './features/offline/index.js';
+import { initAuth, authUI } from './auth/index.js';
+import { registerUI, initRegister } from './registration/index.js';
+import { userManagementUI, initUserManagement } from './user-management/index.js';
+import { patientsUI, initPatients } from './patients/index.js';
+import { cxrUI, initCXR } from './cxr/index.js';
+import { labUI, initLab } from './lab/index.js';
+import { fusionUI, initFusion } from './fusion/index.js';
+import { reportingUI, initReporting } from './reporting/index.js';
+import { initOffline } from './offline/index.js';
 
 const featureMap = {
   auth: { render: authUI, init: initAuth },
+  register: { render: registerUI, init: initRegister },
+  userManagement: { render: userManagementUI, init: initUserManagement },
   patients: { render: patientsUI, init: initPatients },
   cxr: { render: cxrUI, init: initCXR },
   lab: { render: labUI, init: initLab },
