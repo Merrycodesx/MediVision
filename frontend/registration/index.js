@@ -4,20 +4,12 @@ export function registerUI() {
   const section = document.createElement('section');
   section.innerHTML = `
     <h2>User Registration</h2>
-    <input id="reg-email" type="email" placeholder="Email" /><br>
+    <label>Username</label><br>
     <input id="reg-username" placeholder="Username" /><br>
-    <input id="reg-first-name" placeholder="First Name" /><br>
-    <input id="reg-last-name" placeholder="Last Name" /><br>
-    <input id="reg-native-name" placeholder="Native Name" /><br>
-    <input id="reg-phone" placeholder="Phone" /><br>
+    <label>Email</label><br>
+    <input id="reg-email" type="email" placeholder="Email" /><br>
+    <label>Password</label><br>
     <input id="reg-password" type="password" placeholder="Password" /><br>
-    <select id="reg-role">
-      <option value="C">Clinician</option>
-      <option value="R">Radiologist</option>
-      <option value="L">Local Admin</option>
-      <option value="A">Auditor</option>
-      <option value="P">Patient</option>
-    </select><br>
     <button id="register-btn">Register</button>
     <button id="register-cancel" style="margin-left: 8px;">Cancel</button>
     <p id="register-message"></p>
@@ -29,25 +21,34 @@ export async function initRegister() {
   document.getElementById('register-cancel').onclick = () => window.loadFeature('auth');
   document.getElementById('register-btn').onclick = async () => {
     const payload = {
-      email: document.getElementById('reg-email').value.trim(),
       username: document.getElementById('reg-username').value.trim(),
-      first_name: document.getElementById('reg-first-name').value.trim(),
-      last_name: document.getElementById('reg-last-name').value.trim(),
-      native_name: document.getElementById('reg-native-name').value.trim(),
-      phone_num: document.getElementById('reg-phone').value.trim(),
+      email: document.getElementById('reg-email').value.trim(),
       password: document.getElementById('reg-password').value,
-      role: document.getElementById('reg-role').value,
     };
     const msg = document.getElementById('register-message');
 
-    if (!payload.email || !payload.username || !payload.password) {
-      msg.textContent = 'Email, username and password are required.';
+    if (!payload.username || !payload.email || !payload.password) {
+      msg.textContent = 'Username, email and password are required.';
       return;
     }
 
     try {
       const resp = await fetch(`${API_BASE}auth/register/`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        msg.textContent = 'Registration successful. You can now login.';
+      } else {
+        msg.textContent = data.detail || 'Registration failed.';
+      }
+    } catch (error) {
+      console.error(error);
+      msg.textContent = 'Network error during registration.';
+    }
+  };
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

@@ -4,8 +4,8 @@ export function authUI() {
   const section = document.createElement('section');
   section.innerHTML = `
     <h2>Login</h2>
-    <label>Email (used as username)</label><br>
-    <input id="login-email" type="email" placeholder="Email" /><br>
+    <label>Username</label><br>
+    <input id="login-username" placeholder="Username" /><br>
     <label>Password</label><br>
     <input id="login-password" type="password" placeholder="Password" /><br>
     <button id="login-button">Login</button>
@@ -21,10 +21,10 @@ export async function initAuth() {
   const msg = document.getElementById('login-message');
 
   loginButton.onclick = async () => {
-    const email = document.getElementById('login-email').value.trim();
+    const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
-    if (!email || !password) {
-      msg.textContent = 'Email and password are required.';
+    if (!username || !password) {
+      msg.textContent = 'Username and password are required.';
       return;
     }
     msg.textContent = 'Logging in...';
@@ -33,7 +33,7 @@ export async function initAuth() {
       const resp = await fetch(`${API_BASE}auth/token/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       const data = await resp.json();
       if (resp.ok && data.access) {
