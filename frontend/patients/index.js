@@ -8,6 +8,7 @@ export function patientsUI() {
       <button id="btn-refresh">Load Patients</button>
       <button id="btn-add">Add Patient</button>
       <button id="btn-cxr">CXR</button>
+      <button id="btn-clinical">Clinical</button>
       <button id="btn-lab">Lab</button>
       <button id="btn-fusion">Fusion</button>
       <button id="btn-report">Reports</button>
@@ -140,6 +141,7 @@ export async function initPatients() {
   document.getElementById('btn-refresh').onclick = loadPatients;
   document.getElementById('btn-add').onclick = showCreateForm;
   document.getElementById('btn-cxr').onclick = () => window.loadFeature('cxr');
+  document.getElementById('btn-clinical').onclick = () => window.loadFeature('clinical');
   document.getElementById('btn-lab').onclick = () => window.loadFeature('lab');
   document.getElementById('btn-fusion').onclick = () => window.loadFeature('fusion');
   document.getElementById('btn-report').onclick = () => window.loadFeature('reporting');

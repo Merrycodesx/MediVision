@@ -49,18 +49,4 @@ export async function initRegister() {
       msg.textContent = 'Network error during registration.';
     }
   };
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await resp.json();
-      if (resp.ok) {
-        msg.textContent = 'Registration succeeded. Please login.';
-      } else {
-        msg.textContent = data.detail || 'Registration failed (check fields).';
-      }
-    } catch (error) {
-      console.error(error);
-      msg.textContent = 'Network error on registration.';
-    }
-  };
 }
