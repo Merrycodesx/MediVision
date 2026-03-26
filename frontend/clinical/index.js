@@ -1,3 +1,5 @@
+import { enqueueOfflineAction } from '../offline/index.js';
+
 const API_BASE = 'http://127.0.0.1:8000/api/';
 
 export function clinicalUI() {
@@ -39,6 +41,22 @@ export async function initClinical() {
       return;
     }
 
+    const payload = {
+      patient_id,
+      symptoms: symptoms.split(',').map(s => s.trim()).filter(Boolean),
+      risk_factors: risk_factors.split(',').map(r => r.trim()).filter(Boolean),
+      age: Number(age),
+      sex,
+      smoker,
+      hiv_positive,
+    };
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction('clinical/', 'POST', payload);
+      msg.textContent = 'Offline: clinical data queued for sync.';
+      return;
+    }
+
     const token = localStorage.getItem('accessToken');
     try {
       const resp = await fetch(`${API_BASE}clinical/`, {
@@ -47,25 +65,19 @@ export async function initClinical() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          patient_id,
-          symptoms: symptoms.split(',').map(s => s.trim()).filter(Boolean),
-          risk_factors: risk_factors.split(',').map(r => r.trim()).filter(Boolean),
-          age: Number(age),
-          sex,
-          smoker,
-          hiv_positive,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await resp.json();
       if (resp.ok) {
         msg.textContent = 'Clinical data saved successfully.';
       } else {
-        msg.textContent = data.detail || 'Failed to save clinical data.';
+        enqueueOfflineAction('clinical/', 'POST', payload);
+        msg.textContent = data.detail || 'Failed to save clinical data; queued for retry.';
       }
     } catch (error) {
       console.error(error);
-      msg.textContent = 'Network error saving clinical data.';
+      enqueueOfflineAction('clinical/', 'POST', payload);
+      msg.textContent = 'Network error saving clinical data; queued for retry.';
     }
   };
 }

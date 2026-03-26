@@ -1,3 +1,5 @@
+import { enqueueOfflineAction } from '../offline/index.js';
+
 const API_BASE = 'http://127.0.0.1:8000/api/';
 
 export function fusionUI() {
@@ -38,6 +40,13 @@ export async function initFusion() {
       }
     };
 
+    if (!navigator.onLine) {
+      enqueueOfflineAction(`fusion/${patientId}/`, 'POST', body);
+      msg.textContent = 'Offline: fusion request queued for sync.';
+      result.textContent = 'Will run when online.';
+      return;
+    }
+
     try {
       const resp = await fetch(`${API_BASE}fusion/${patientId}/`, {
         method: 'POST',
@@ -52,11 +61,13 @@ export async function initFusion() {
         msg.textContent = 'Fusion completed';
         result.textContent = JSON.stringify(data, null, 2);
       } else {
-        msg.textContent = data.detail || 'Fusion failed';
+        enqueueOfflineAction(`fusion/${patientId}/`, 'POST', body);
+        msg.textContent = data.detail || 'Fusion failed; queued for retry';
       }
     } catch (error) {
       console.error(error);
-      msg.textContent = 'Network error running fusion';
+      enqueueOfflineAction(`fusion/${patientId}/`, 'POST', body);
+      msg.textContent = 'Network error running fusion; queued for retry';
     }
   };
 }

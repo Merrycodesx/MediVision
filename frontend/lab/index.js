@@ -1,3 +1,5 @@
+import { enqueueOfflineAction } from '../offline/index.js';
+
 const API_BASE = 'http://127.0.0.1:8000/api/';
 
 export function labUI() {
@@ -30,6 +32,14 @@ export async function initLab() {
       return;
     }
 
+    const payload = { patient_id, genexpert, smear, culture };
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction('labs/', 'POST', payload);
+      msg.textContent = 'Offline: lab data queued for sync.';
+      return;
+    }
+
     try {
       const resp = await fetch(`${API_BASE}labs/`, {
         method: 'POST',
@@ -37,17 +47,19 @@ export async function initLab() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify({ patient_id, genexpert, smear, culture }),
+        body: JSON.stringify(payload),
       });
       const data = await resp.json();
       if (resp.ok) {
         msg.textContent = 'Lab result saved';
       } else {
-        msg.textContent = data.detail || 'Failed to save lab result';
+        enqueueOfflineAction('labs/', 'POST', payload);
+        msg.textContent = data.detail || 'Failed to save lab result; queued for retry';
       }
     } catch (error) {
       console.error(error);
-      msg.textContent = 'Network error';
+      enqueueOfflineAction('labs/', 'POST', payload);
+      msg.textContent = 'Network error; lab data queued for retry';
     }
   };
 }
