@@ -3,6 +3,7 @@ import { registerUI, initRegister } from './registration/index.js';
 import { userManagementUI, initUserManagement } from './user-management/index.js';
 import { patientsUI, initPatients } from './patients/index.js';
 import { cxrUI, initCXR } from './cxr/index.js';
+import { clinicalUI, initClinical } from './clinical/index.js';
 import { labUI, initLab } from './lab/index.js';
 import { fusionUI, initFusion } from './fusion/index.js';
 import { reportingUI, initReporting } from './reporting/index.js';
@@ -14,6 +15,7 @@ const featureMap = {
   userManagement: { render: userManagementUI, init: initUserManagement },
   patients: { render: patientsUI, init: initPatients },
   cxr: { render: cxrUI, init: initCXR },
+  clinical: { render: clinicalUI, init: initClinical },
   lab: { render: labUI, init: initLab },
   fusion: { render: fusionUI, init: initFusion },
   reporting: { render: reportingUI, init: initReporting },
