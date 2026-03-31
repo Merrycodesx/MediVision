@@ -107,13 +107,25 @@ from .models import Patient, User, ClinicalData
 class PatientSerializer(serializers.ModelSerializer):
     symptoms = serializers.ListField(
         child=serializers.CharField(max_length=40),
-        allow_empty=True #  Optional: Allow empty lists not needed
+        allow_empty=True
     )
 
     class Meta:
         model = Patient
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at', 'clinician_id']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        import json
+        data['symptoms'] = json.loads(instance.symptoms) if instance.symptoms else []
+        return data
+
+    def to_internal_value(self, data):
+        internal = super().to_internal_value(data)
+        import json
+        internal['symptoms'] = json.dumps(internal['symptoms'])
+        return internal
 
     def validate_age(self, value):
         if value < 0:
@@ -199,10 +211,26 @@ class ScreeningSerializer(serializers.ModelSerializer):
 =======
 class ClinicalDataSerializer(serializers.ModelSerializer):
     patient_id = serializers.IntegerField(write_only=True)
+    symptoms = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    risk_factors = serializers.ListField(child=serializers.CharField(), allow_empty=True)
 
     class Meta:
         model = ClinicalData
         fields = ['patient_id', 'symptoms', 'risk_factors', 'age', 'sex', 'smoker', 'hiv_positive']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        import json
+        data['symptoms'] = json.loads(instance.symptoms) if instance.symptoms else []
+        data['risk_factors'] = json.loads(instance.risk_factors) if instance.risk_factors else []
+        return data
+
+    def to_internal_value(self, data):
+        internal = super().to_internal_value(data)
+        import json
+        internal['symptoms'] = json.dumps(internal['symptoms'])
+        internal['risk_factors'] = json.dumps(internal['risk_factors'])
+        return internal
 
     def create(self, validated_data):
         patient_id = validated_data.pop('patient_id')

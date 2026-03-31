@@ -58,9 +58,7 @@ class Patient(models.Model):
         choices=SexChoices
     )
     hiv_Status = models.BooleanField(default=False)
-    symptoms = ArrayField(
-        models.CharField(max_length=40)
-    )
+    symptoms = models.TextField(default='[]')  # JSON string
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     hospital = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name='patients')
@@ -86,8 +84,8 @@ class Screening(models.Model):
 
 class ClinicalData(models.Model):
     patient = models.OneToOneField(Patient, on_delete=models.CASCADE, related_name='clinical_data')
-    symptoms = ArrayField(models.CharField(max_length=100))
-    risk_factors = ArrayField(models.CharField(max_length=100))
+    symptoms = models.TextField()  # JSON string
+    risk_factors = models.TextField()  # JSON string
     age = models.IntegerField()
     sex = models.CharField(max_length=1, choices=[('M', 'Male'), ('F', 'Female')])
     smoker = models.BooleanField(default=False)

@@ -56,6 +56,14 @@ def my_view(request):
     return JsonResponse({"status": "success", "message": "Welcome to the TEST api?"})
 
 
+class ClinicalDataCreateView(generics.CreateAPIView):
+    serializer_class = ClinicalDataSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
