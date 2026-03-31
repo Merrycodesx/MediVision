@@ -82,5 +82,20 @@ class Screening(models.Model):
 
     def __str__(self):
         return f"Screening {self.id} - {self.patient.full_name}"
+
+
+class ClinicalData(models.Model):
+    patient = models.OneToOneField(Patient, on_delete=models.CASCADE, related_name='clinical_data')
+    symptoms = ArrayField(models.CharField(max_length=100))
+    risk_factors = ArrayField(models.CharField(max_length=100))
+    age = models.IntegerField()
+    sex = models.CharField(max_length=1, choices=[('M', 'Male'), ('F', 'Female')])
+    smoker = models.BooleanField(default=False)
+    hiv_positive = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Clinical data for {self.patient.full_name}"
     
 

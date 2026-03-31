@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Hospital, Patient, Screening, User
+from .models import Hospital, Patient, Screening, ClinicalData, User
 
 
 ROLE_MAP = {
@@ -99,6 +99,9 @@ class UserCreateUpdateSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
+=======
+from .models import Patient, User, ClinicalData
+>>>>>>> 109c59e (some change)
 
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -124,6 +127,7 @@ class PatientDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'clinician_id']
 
 
+<<<<<<< HEAD
 class PatientApiSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="full_name")
     hiv_status = serializers.BooleanField(source="hiv_Status")
@@ -192,6 +196,19 @@ class ScreeningSerializer(serializers.ModelSerializer):
 
     def get_patient_name(self, obj):
         return obj.patient.full_name
+=======
+class ClinicalDataSerializer(serializers.ModelSerializer):
+    patient_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = ClinicalData
+        fields = ['patient_id', 'symptoms', 'risk_factors', 'age', 'sex', 'smoker', 'hiv_positive']
+
+    def create(self, validated_data):
+        patient_id = validated_data.pop('patient_id')
+        patient = Patient.objects.get(id=patient_id)
+        return ClinicalData.objects.create(patient=patient, **validated_data)
+>>>>>>> 109c59e (some change)
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):

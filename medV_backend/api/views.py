@@ -10,13 +10,14 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, Toke
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers
 
-from .models import Patient, Screening
+from .models import Patient, Screening, ClinicalData
 from .permissions import IsAdminOrSelf, PatientPermission, RolePermission
 from .serializers import (
     PatientApiSerializer,
     PatientDetailSerializer,
     PatientSerializer,
     ScreeningSerializer,
+    ClinicalDataSerializer,
     UserCreateUpdateSerializer,
     UserRegisterSerializer,
     UserSerializer,
