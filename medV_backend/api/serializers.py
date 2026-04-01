@@ -1,4 +1,5 @@
 from rest_framework import serializers
+<<<<<<< HEAD
 from .models import Hospital, Patient, Screening, ClinicalData, User
 
 
@@ -102,6 +103,9 @@ class UserCreateUpdateSerializer(serializers.ModelSerializer):
 =======
 from .models import Patient, User, ClinicalData
 >>>>>>> 109c59e (some change)
+=======
+from .models import Patient, User, ClinicalData
+>>>>>>> bf1dbb5 (some update)
 
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -139,6 +143,7 @@ class PatientDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'clinician_id']
 
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 class PatientApiSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="full_name")
@@ -209,6 +214,8 @@ class ScreeningSerializer(serializers.ModelSerializer):
     def get_patient_name(self, obj):
         return obj.patient.full_name
 =======
+=======
+>>>>>>> bf1dbb5 (some update)
 class ClinicalDataSerializer(serializers.ModelSerializer):
     patient_id = serializers.IntegerField(write_only=True)
     symptoms = serializers.ListField(child=serializers.CharField(), allow_empty=True)
@@ -236,13 +243,19 @@ class ClinicalDataSerializer(serializers.ModelSerializer):
         patient_id = validated_data.pop('patient_id')
         patient = Patient.objects.get(id=patient_id)
         return ClinicalData.objects.create(patient=patient, **validated_data)
+<<<<<<< HEAD
 >>>>>>> 109c59e (some change)
+=======
+>>>>>>> bf1dbb5 (some update)
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+<<<<<<< HEAD
     hospital_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
     hospital_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+=======
+>>>>>>> bf1dbb5 (some update)
 
     class Meta:
         model = User
@@ -251,12 +264,17 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'email',
             'username',
             'password',
+<<<<<<< HEAD
             'role',
             'native_name',
             'phone_num',
             'hospital',
             'hospital_code',
             'hospital_name',
+=======
+            'native_name',
+            'phone_num',
+>>>>>>> bf1dbb5 (some update)
             'first_name',
             'last_name',
         ]
@@ -264,6 +282,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+<<<<<<< HEAD
         hospital_code = (validated_data.pop('hospital_code', '') or '').strip()
         hospital_name = (validated_data.pop('hospital_name', '') or '').strip()
 
@@ -292,6 +311,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
                 )
 
         validated_data['hospital'] = hospital
+=======
+>>>>>>> bf1dbb5 (some update)
         user = User(**validated_data)
         user.set_password(password)
         user.save()

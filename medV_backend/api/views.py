@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+<<<<<<< HEAD
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import exceptions, generics, status
@@ -54,6 +55,41 @@ def stub_response(feature, request):
 
 def my_view(request):
     return JsonResponse({"status": "success", "message": "Welcome to the TEST api?"})
+=======
+from .serializers import PatientSerializer, PatientDetailSerializer, UserRegisterSerializer, ClinicalDataSerializer
+from .models import Patient
+from rest_framework import generics
+from .permissions import PatientPermission
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
+def my_view(request):
+    data = {
+            "status": "success",
+            "message": "Welcome to the TEST api?",
+        }
+    return JsonResponse(data)
+
+
+class PatientListCreateView(generics.ListCreateAPIView):
+    queryset = Patient.objects.all()
+    serializer_class = PatientSerializer
+    permission_classes = [IsAuthenticated, PatientPermission]
+
+
+    def perform_create(self, serializer):
+        serializer.save(clinician_id=self.request.user)
+
+class patientDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Patient.objects.all()
+    serializer_class = PatientDetailSerializer
+    permission_classes = [IsAuthenticated, PatientPermission]
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+>>>>>>> bf1dbb5 (some update)
 
 
 class ClinicalDataCreateView(generics.CreateAPIView):
@@ -66,6 +102,7 @@ class ClinicalDataCreateView(generics.CreateAPIView):
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegisterSerializer
+<<<<<<< HEAD
     permission_classes = [AllowAny]
 
 
@@ -434,3 +471,6 @@ class ModelsListView(APIView):
 # Backward-compat endpoint names retained.
 class patientDetailView(PatientDetailView):
     pass
+=======
+    permission_classes = [AllowAny]
+>>>>>>> bf1dbb5 (some update)
