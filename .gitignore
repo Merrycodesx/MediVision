@@ -49,6 +49,10 @@ coverage.xml
 *.py.cover
 .hypothesis/
 
+# Virtual environments
+medV-env/
+medV-env-new/
+
 # Node.js
 node_modules/
 npm-debug.log*
