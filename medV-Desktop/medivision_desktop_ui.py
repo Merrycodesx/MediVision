@@ -1,11 +1,15 @@
 import sys
 import re
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+from pathlib import Path
+
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, QStackedWidget,
                              QComboBox, QCheckBox, QGraphicsDropShadowEffect, QGridLayout,
                              QSpacerItem, QSizePolicy, QFrame)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont, QColor, QPalette, QCursor
+from PyQt6.QtGui import QFont, QColor, QPalette, QCursor, QPainter, QPixmap
+
+_LANDING_BG_PATH = Path(__file__).resolve().parent / "assets" / "landing_bg.png"
 from dashboard.api_client import APIClient, ApiWorker, AuthStore
 
 # ---------------------------------------------------------
@@ -298,7 +302,10 @@ class BasePage(QWidget):
 class LandingPage(BasePage):
     def __init__(self, lang_mgr, theme_mgr, parent=None):
         super().__init__(lang_mgr, theme_mgr, parent)
-        
+        self._bg_pixmap = QPixmap(str(_LANDING_BG_PATH))
+        if self._bg_pixmap.isNull():
+            self._bg_pixmap = QPixmap()
+
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
@@ -347,6 +354,25 @@ class LandingPage(BasePage):
         self.apply_theme()
         self.retranslate()
 
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        w, h = self.width(), self.height()
+        if w <= 0 or h <= 0:
+            return
+        c = self.theme_mgr.get_colors()
+        if self._bg_pixmap.isNull():
+            painter.fillRect(self.rect(), QColor(c["bg"]))
+            return
+        scaled = self._bg_pixmap.scaled(
+            w, h,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        x = max(0, (scaled.width() - w) // 2)
+        y = max(0, (scaled.height() - h) // 2)
+        painter.drawPixmap(0, 0, scaled, x, y, w, h)
+
     def apply_theme(self):
         c = self.theme_mgr.get_colors()
         self.title_lbl.setStyleSheet(f"color: {c['primary']};")
@@ -354,6 +380,7 @@ class LandingPage(BasePage):
         self.desc_lbl.setStyleSheet(f"color: {c['text_secondary']};")
         self.login_btn.apply_style()
         self.reg_btn.apply_style()
+        self.update()
 
     def retranslate(self):
         self.title_lbl.setText(self.lang_mgr.get("app_title"))
@@ -823,6 +850,7 @@ class MainWindow(QMainWindow):
         
         # Stacked Widget for Navigation
         self.stack = QStackedWidget()
+        self.stack.setStyleSheet("QStackedWidget { background: transparent; }")
         self.main_layout.addWidget(self.stack)
         
         # Initialize Pages
