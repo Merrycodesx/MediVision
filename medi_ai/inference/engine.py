@@ -20,8 +20,8 @@ class TBInferenceEngine:
         models_dir = os.path.join(os.path.dirname(__file__), '..', 'models', 'trained')
         
         # Load CNN
-        from models.cnn import DenseNet121
-        self.cnn_model = DenseNet121(num_classes=2)
+        from models.cnn import DenseNetCNN
+        self.cnn_model = DenseNetCNN()
         cnn_path = os.path.join(models_dir, 'densenet_cnn.pth')
         if os.path.exists(cnn_path):
             self.cnn_model.load_state_dict(torch.load(cnn_path, map_location=self.device))

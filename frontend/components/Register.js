@@ -24,7 +24,7 @@ export default function Register({ setCurrentFeature }) {
       if (resp.ok) {
         setMessage('Registration successful. You can now login.');
       } else {
-        setMessage(data.detail || 'Registration failed.');
+        setMessage(data.detail || JSON.stringify(data) || 'Registration failed.');
       }
     } catch (error) {
       console.error(error);

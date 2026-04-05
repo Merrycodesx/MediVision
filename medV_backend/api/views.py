@@ -113,7 +113,7 @@ def my_view(request):
 
 class PatientListCreateView(generics.ListCreateAPIView):
     queryset = Patient.objects.all()
-    serializer_class = PatientSerializer
+    serializer_class = PatientApiSerializer
     permission_classes = [IsAuthenticated, PatientPermission]
 
 

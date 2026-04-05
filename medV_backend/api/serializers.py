@@ -7,6 +7,8 @@ ROLE_MAP = {
     "radiologist": "R",
     "admin": "L",
     "auditor": "A",
+    "doctor": "C",
+    "technician": "R",
 }
 
 ROLE_MAP_REVERSE = {v: k for k, v in ROLE_MAP.items()}
@@ -185,6 +187,12 @@ class PatientApiSerializer(serializers.ModelSerializer):
     def get_hospital_name(self, obj):
         return obj.hospital.name if obj.hospital else None
 
+    def create(self, validated_data):
+        # Remove fields not in the model
+        validated_data.pop('comorbidities', None)
+        # Fields are already mapped by source
+        return super().create(validated_data)
+
 
 class ScreeningSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
@@ -236,9 +244,14 @@ class ClinicalDataSerializer(serializers.ModelSerializer):
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True, min_length=6)
     hospital_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
     hospital_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    role = serializers.CharField(write_only=True, required=False, default='C')
+    native_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    phone_num = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
@@ -267,6 +280,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
         hospital = validated_data.get('hospital')
         role = validated_data.get('role', 'C')
+
+        # Set defaults for required fields
+        validated_data.setdefault('native_name', validated_data.get('username', ''))
+        validated_data.setdefault('phone_num', '')
+        validated_data.setdefault('first_name', '')
+        validated_data.setdefault('last_name', '')
 
         if hospital is None and hospital_code:
             hospital = Hospital.objects.filter(code__iexact=hospital_code).first()
