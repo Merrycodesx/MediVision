@@ -28,6 +28,49 @@ User = get_user_model()
 CONFIG_STATE = {"sensitivity_threshold": 0.95, "other_params": {}}
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_root(request):
+    return Response({
+        "message": "MediVision API",
+        "version": "1.0",
+        "endpoints": {
+            "auth": {
+                "register": "/api/auth/register/",
+                "login": "/api/auth/login/",
+                "token": "/api/auth/token/",
+                "refresh": "/api/auth/refresh/",
+                "logout": "/api/auth/logout/"
+            },
+            "patients": "/api/patients/",
+            "users": "/api/users/",
+            "inference": "/api/inference/run/",
+            "images": "/api/images/upload/",
+            "labs": "/api/labs/",
+            "screenings": "/api/screenings/",
+            "reports": "/api/reports/<screening_id>/",
+            "feedback": "/api/feedback/",
+            "config": "/api/config/",
+            "audits": "/api/audits/",
+            "hms": {
+                "import": "/api/hms/import/",
+                "export": "/api/hms/export/"
+            },
+            "models": "/api/models/"
+        }
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_auth_root(request):
+    return Response({
+        "message": "Django REST Framework Authentication",
+        "login": "/api-auth/login/",
+        "logout": "/api-auth/logout/"
+    })
+
+
 def paginate_queryset(queryset, request):
     page = int(request.query_params.get("page", 1) or 1)
     limit = int(request.query_params.get("limit", 10) or 10)
