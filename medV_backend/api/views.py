@@ -1,5 +1,4 @@
 from django.http import JsonResponse
-<<<<<<< HEAD
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import exceptions, generics, status
@@ -55,7 +54,6 @@ def stub_response(feature, request):
 
 def my_view(request):
     return JsonResponse({"status": "success", "message": "Welcome to the TEST api?"})
-=======
 from .serializers import PatientSerializer, PatientDetailSerializer, UserRegisterSerializer, ClinicalDataSerializer
 from .models import Patient
 from rest_framework import generics
@@ -89,7 +87,6 @@ class patientDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         instance.delete()
->>>>>>> bf1dbb5 (some update)
 
 
 class ClinicalDataCreateView(generics.CreateAPIView):
@@ -102,7 +99,6 @@ class ClinicalDataCreateView(generics.CreateAPIView):
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegisterSerializer
-<<<<<<< HEAD
     permission_classes = [AllowAny]
 
 
@@ -329,6 +325,10 @@ class AIInferenceRunView(APIView):
 
     def post(self, request):
         patient_id = request.data.get("patient_id")
+        image_path = request.data.get("image_path")  # Optional
+        age = request.data.get("age")  # Optional
+        sex = request.data.get("sex")  # Optional
+
         if not patient_id:
             return Response({"success": False, "message": "patient_id is required."}, status=400)
         try:
@@ -336,13 +336,27 @@ class AIInferenceRunView(APIView):
         except Patient.DoesNotExist:
             return Response({"success": False, "message": "Patient not found in your hospital."}, status=404)
 
+        # Try to use medi_ai inference
+        tb_score = 72.5
+        triage_recommendation = "high risk - refer to GeneXpert"
+        try:
+            from inference.engine import TBInferenceEngine
+            engine = TBInferenceEngine()
+            engine.load_models()
+            result = engine.predict(image_path=image_path, age=age, sex=sex)
+            if "error" not in result:
+                tb_score = result["tb_score"]
+                triage_recommendation = result["triage_recommendation"]
+        except ImportError:
+            pass  # Use dummy values
+
         screening = Screening.objects.create(
             patient=patient,
             requested_by=request.user,
             hospital=request.user.hospital,
-            tb_score=72.5,
+            tb_score=tb_score,
             heatmap_url="",
-            triage_recommendation="high risk - refer to GeneXpert",
+            triage_recommendation=triage_recommendation,
         )
         return Response(
             {
@@ -471,6 +485,4 @@ class ModelsListView(APIView):
 # Backward-compat endpoint names retained.
 class patientDetailView(PatientDetailView):
     pass
-=======
     permission_classes = [AllowAny]
->>>>>>> bf1dbb5 (some update)

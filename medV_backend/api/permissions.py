@@ -1,6 +1,5 @@
 from rest_framework.permissions import BasePermission
 
-<<<<<<< HEAD
 
 ROLE_CODE_MAP = {
     "doctor": "C",
@@ -45,8 +44,6 @@ class IsAdminOrSelf(BasePermission):
             return False
         return normalize_role(user.role) == "L" or obj == user
 
-=======
->>>>>>> bf1dbb5 (some update)
 class PatientPermission(BasePermission):
     """
     Custom permission for Patient detail views:
@@ -58,7 +55,6 @@ class PatientPermission(BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-<<<<<<< HEAD
         if hasattr(obj, 'hospital') and user.hospital_id and obj.hospital_id != user.hospital_id:
             return False
         role = normalize_role(user.role)
@@ -69,7 +65,6 @@ class PatientPermission(BasePermission):
         if request.method == 'DELETE':
             return role == 'L'
         return role in ['C', 'R', 'L']
-=======
         if request.method == 'GET':
             if user.role in ['C', 'R']:
                 return True
@@ -81,4 +76,3 @@ class PatientPermission(BasePermission):
         elif request.method == 'DELETE':
             return user.role == 'L'
         return False
->>>>>>> bf1dbb5 (some update)

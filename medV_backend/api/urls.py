@@ -4,7 +4,6 @@ from . import views
 
 # Variable must be named 'urlpatterns'
 urlpatterns = [
-<<<<<<< HEAD
     # Patient management
     path('patients/', views.PatientListCreateView.as_view(), name='patients-list-create'),
     path('patients/<int:pk>/', views.patientDetailView.as_view(), name='patient-detail-legacy'),
@@ -59,13 +58,4 @@ urlpatterns = [
     # Model management
     path('models/update/', views.ModelsUpdateView.as_view(), name='models-update'),
     path('models/', views.ModelsListView.as_view(), name='models-list'),
-=======
-    path('test/', views.my_view, name='test_view'),
-    path('patients/', views.PatientListCreateView.as_view(), name='patients-list-create'),
-    path('patients/<int:pk>/', views.patientDetailView.as_view(), name='patient-detail'),
-    path('clinical/', views.ClinicalDataCreateView.as_view(), name='clinical-create'),
-    path('auth/register/', views.RegisterView.as_view(), name='auth-register'),
-    path('auth/token/', TokenObtainPairView.as_view(), name='token-obtain-pair'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
->>>>>>> bf1dbb5 (some update)
 ]

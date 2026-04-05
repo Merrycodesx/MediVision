@@ -13,8 +13,12 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import environ
 import os
+import sys
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Add medi_ai to Python path
+sys.path.append(str(BASE_DIR.parent / 'medi_ai'))
 
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
