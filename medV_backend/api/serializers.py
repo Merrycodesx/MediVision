@@ -217,6 +217,26 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
+    def validate_role(self, value):
+        raw = str(value or '').strip().lower()
+        role_map = {
+            'doctor': 'C',
+            'clinician': 'C',
+            'c': 'C',
+            'technician': 'R',
+            'radiologist': 'R',
+            'r': 'R',
+            'admin': 'L',
+            'l': 'L',
+            'auditor': 'A',
+            'a': 'A',
+        }
+        if raw in role_map:
+            return role_map[raw]
+        if str(value or '').strip().upper() in {'C', 'R', 'L', 'A'}:
+            return str(value).strip().upper()
+        raise serializers.ValidationError('Invalid role.')
+
     def create(self, validated_data):
         password = validated_data.pop('password')
         hospital_code = (validated_data.pop('hospital_code', '') or '').strip()
@@ -225,14 +245,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         hospital = validated_data.get('hospital')
         role = validated_data.get('role', 'C')
 
+        if str(role).strip().upper() == 'L':
+            raise serializers.ValidationError({"role": "Admin registration is not allowed."})
+
         if hospital is None and hospital_code:
             hospital = Hospital.objects.filter(code__iexact=hospital_code).first()
-            if hospital is None and role == 'L':
-                # Allow admin to bootstrap a new hospital by code.
-                hospital = Hospital.objects.create(
-                    code=hospital_code.upper(),
-                    name=hospital_name or f"Hospital {hospital_code.upper()}",
-                )
 
         if hospital is None:
             if Hospital.objects.count() == 0:
