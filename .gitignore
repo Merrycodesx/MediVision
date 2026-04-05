@@ -189,7 +189,7 @@ cython_debug/
 .pypirc
 
 
-medV_backend/api/migrations/*
+# medV_backend/api/migrations/*
 medV_backend/cxr_images/*
 medV_backend/Pipfile.lock
 medV_backend/Pipfile
@@ -197,4 +197,3 @@ requirements_py.txt
 TEAM_WORKFLOW.md
 TEAM_WORKFLOW.txt
 medV-env/
-medV_Desktop/*
