@@ -138,6 +138,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+medV-env/
 env/
 venv/
 ENV/
@@ -188,14 +189,11 @@ cython_debug/
 .pypirc
 
 
-medV_backend/api/migrations/*
+# medV_backend/api/migrations/*
 medV_backend/cxr_images/*
 medV_backend/Pipfile.lock
 medV_backend/Pipfile
 requirements_py.txt
-medV-Desktop/*
-medV-Desktop/*
 TEAM_WORKFLOW.md
 TEAM_WORKFLOW.txt
-
-medV-env/*
+medV-env/

@@ -4,7 +4,7 @@ from . import views
 
 # Variable must be named 'urlpatterns'
 urlpatterns = [
-    # Patient management
+    path('test/', views.my_view, name='test_view'),
     path('patients/', views.PatientListCreateView.as_view(), name='patients-list-create'),
     path('patients/<int:pk>/', views.patientDetailView.as_view(), name='patient-detail-legacy'),
     path('patients/<int:patient_id>/', views.PatientDetailView.as_view(), name='patient-detail'),
