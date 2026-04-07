@@ -47,7 +47,7 @@ class IsAdminOrSelf(BasePermission):
 class PatientPermission(BasePermission):
     """
     Custom permission for Patient detail views:
-    - GET: Allowed for clinicians, radiologists, the patient themselves, and admins.
+    - GET: Allowed for clinicians, radiologists, and admins.
     - PUT/PATCH: Allowed for clinicians and radiologists.
     - DELETE: Allowed only for admins.
     """
