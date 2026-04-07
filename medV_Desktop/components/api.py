@@ -9,6 +9,25 @@ ROLE_MAP = {
     "Auditor": "auditor",
 }
 
+ROLE_CODE_MAP = {
+    "Doctor": "C",
+    "Technician": "R",
+    "Admin": "L",
+    "Auditor": "A",
+    "clinician": "C",
+    "radiologist": "R",
+    "admin": "L",
+    "auditor": "A",
+    "C": "C",
+    "R": "R",
+    "L": "L",
+    "A": "A",
+}
+
+
+def normalize_role_code(role):
+    return ROLE_CODE_MAP.get(role, role)
+
 
 class ApiClient:
     def __init__(self, base_url=BASE_URL):
@@ -65,7 +84,7 @@ class ApiClient:
         return self._request(
             "POST",
             "auth/login/",
-            json_data={"email": username, "password": password, "role": ROLE_MAP.get(role, role)},
+            json_data={"email": username, "password": password, "role": normalize_role_code(role)},
         )
 
     def auth_refresh(self, refresh_token, token=None):
@@ -85,7 +104,7 @@ class ApiClient:
         return self._request("GET", f"users/{suffix}", token=token)
 
     def create_user(self, token, username, password, role, email=None, first_name=None, last_name=None, native_name=None, phone_num=None):
-        role_value = ROLE_MAP.get(role, role)
+        role_value = normalize_role_code(role)
         body = {
             "username": username,
             "password": password,
@@ -251,7 +270,7 @@ def register(email, username, password, role, first_name, last_name, native_name
             "email": email,
             "username": username,
             "password": password,
-            "role": ROLE_MAP.get(role, "clinician"),
+            "role": normalize_role_code(role),
             "first_name": first_name,
             "last_name": last_name,
             "native_name": native_name,
@@ -296,6 +315,13 @@ def get_patients(token):
     if isinstance(payload, dict):
         return payload.get("results", [])
     return payload if isinstance(payload, list) else []
+
+
+def get_patient(token, patient_id):
+    payload = client.get_patient(token, patient_id)
+    if not isinstance(payload, dict):
+        return {"success": False, "message": "Unexpected response format."}
+    return payload
 
 
 def submit_new_case(token, case_data, image_path):

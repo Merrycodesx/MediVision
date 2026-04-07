@@ -12,6 +12,8 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 
+from components.geez_keyboard import GeezKeyboardDialog
+
 
 TEXTS = {
     "English": {
@@ -24,6 +26,7 @@ TEXTS = {
         "first_name": "First Name",
         "last_name": "Last Name",
         "native_name": "Native Name",
+        "geez_keyboard": "Ge'ez Keyboard",
         "phone_num": "Phone Number",
         "role": "Role",
         "headers": ["ID", "Username", "Email", "Role", "Active"],
@@ -38,6 +41,7 @@ TEXTS = {
         "first_name": "ስም",
         "last_name": "የአባት ስም",
         "native_name": "የአገር ቋንቋ ስም",
+        "geez_keyboard": "ግዕዝ ኪቦርድ",
         "phone_num": "ስልክ ቁጥር",
         "role": "ሚና",
         "headers": ["ID", "ስም", "ኢሜይል", "ሚና", "Active"],
@@ -64,6 +68,8 @@ class UsersPage(QWidget):
         self.first_name = QLineEdit()
         self.last_name = QLineEdit()
         self.native_name = QLineEdit()
+        self.geez_keyboard_btn = QPushButton()
+        self.geez_keyboard_btn.clicked.connect(self.open_geez_keyboard)
         self.phone_num = QLineEdit()
         self.password = QLineEdit()
         self.password.setEchoMode(QLineEdit.Password)
@@ -79,6 +85,7 @@ class UsersPage(QWidget):
         form_row.addWidget(self.first_name)
         form_row.addWidget(self.last_name)
         form_row.addWidget(self.native_name)
+        form_row.addWidget(self.geez_keyboard_btn)
         form_row.addWidget(self.phone_num)
         form_row.addWidget(self.password)
         form_row.addWidget(self.role)
@@ -102,6 +109,7 @@ class UsersPage(QWidget):
         self.first_name.setPlaceholderText(t["first_name"])
         self.last_name.setPlaceholderText(t["last_name"])
         self.native_name.setPlaceholderText(t["native_name"])
+        self.geez_keyboard_btn.setText(t["geez_keyboard"])
         self.phone_num.setPlaceholderText(t["phone_num"])
         self.password.setPlaceholderText(t["password"])
         self.create_btn.setText(t["create"])
@@ -109,6 +117,10 @@ class UsersPage(QWidget):
         self.table.setHorizontalHeaderLabels(t["headers"])
         self.create_btn.setIcon(self.style().standardIcon(self.style().SP_FileDialogNewFolder))
         self.refresh_btn.setIcon(self.style().standardIcon(self.style().SP_BrowserReload))
+
+    def open_geez_keyboard(self):
+        dialog = GeezKeyboardDialog(self.native_name, self)
+        dialog.exec_()
 
     def set_users(self, users):
         rows = users if isinstance(users, list) else []

@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QComboBox, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QComboBox, QMessageBox
+
+from components.geez_keyboard import GeezKeyboardDialog
 
 
 TEXTS = {
@@ -13,6 +15,7 @@ TEXTS = {
         "hospital_code": "Hospital Code",
         "hospital_name": "Hospital Name (for first admin/bootstrap)",
         "password": "Password",
+        "geez_keyboard": "Ge'ez Keyboard",
         "register": "Register",
         "back": "Back to Login",
         "success_title": "Success",
@@ -30,6 +33,7 @@ TEXTS = {
         "hospital_code": "የሆስፒታል ኮድ",
         "hospital_name": "የሆስፒታል ስም (ለመጀመሪያ Admin)",
         "password": "የይለፍ ቃል",
+        "geez_keyboard": "ግዕዝ ኪቦርድ",
         "register": "ተመዝገብ",
         "back": "ወደ መግቢያ ተመለስ",
         "success_title": "ተሳክቷል",
@@ -53,6 +57,8 @@ class RegisterPage(QWidget):
         self.first_name = QLineEdit()
         self.last_name = QLineEdit()
         self.native_name = QLineEdit()
+        self.geez_keyboard_btn = QPushButton()
+        self.geez_keyboard_btn.clicked.connect(self.open_geez_keyboard)
         self.phone_num = QLineEdit()
         self.hospital_code = QLineEdit()
         self.hospital_name = QLineEdit()
@@ -68,7 +74,10 @@ class RegisterPage(QWidget):
         layout.addWidget(self.username)
         layout.addWidget(self.first_name)
         layout.addWidget(self.last_name)
-        layout.addWidget(self.native_name)
+        native_name_row = QHBoxLayout()
+        native_name_row.addWidget(self.native_name)
+        native_name_row.addWidget(self.geez_keyboard_btn)
+        layout.addLayout(native_name_row)
         layout.addWidget(self.phone_num)
         layout.addWidget(self.hospital_code)
         layout.addWidget(self.hospital_name)
@@ -90,6 +99,7 @@ class RegisterPage(QWidget):
         self.first_name.setPlaceholderText(texts["first_name"])
         self.last_name.setPlaceholderText(texts["last_name"])
         self.native_name.setPlaceholderText(texts["native_name"])
+        self.geez_keyboard_btn.setText(texts["geez_keyboard"])
         self.phone_num.setPlaceholderText(texts["phone"])
         self.hospital_code.setPlaceholderText(texts["hospital_code"])
         self.hospital_name.setPlaceholderText(texts["hospital_name"])
@@ -98,6 +108,10 @@ class RegisterPage(QWidget):
         self.login_btn.setText(texts["back"])
         self.register_btn.setIcon(self.style().standardIcon(self.style().SP_FileDialogNewFolder))
         self.login_btn.setIcon(self.style().standardIcon(self.style().SP_ArrowBack))
+
+    def open_geez_keyboard(self):
+        dialog = GeezKeyboardDialog(self.native_name, self)
+        dialog.exec_()
 
     def try_register(self):
         email = self.email.text()
