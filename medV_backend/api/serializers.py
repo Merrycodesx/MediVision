@@ -273,6 +273,14 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
+    def validate_role(self, value):
+        raw = str(value).strip().lower()
+        if raw in ROLE_MAP:
+            return ROLE_MAP[raw]
+        if value in ROLE_MAP_REVERSE:
+            return value
+        raise serializers.ValidationError("Invalid role.")
+
     def create(self, validated_data):
         password = validated_data.pop('password')
         hospital_code = (validated_data.pop('hospital_code', '') or '').strip()
