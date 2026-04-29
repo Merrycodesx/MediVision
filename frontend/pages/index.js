@@ -3,6 +3,8 @@ import Auth from '../components/Auth';
 import Register from '../components/Register';
 import Patients from '../components/Patients';
 import UserManagement from '../components/UserManagement';
+import AdminPanel from '../components/AdminPanel';
+import Screenings from '../components/Screenings';
 import Offline from '../components/Offline';
 
 function Placeholder({ name, setCurrentFeature }) {
@@ -20,10 +22,13 @@ const featureMap = {
   register: Register,
   patients: Patients,
   userManagement: UserManagement,
-  cxr: (props) => <Placeholder name="CXR" {...props} />,
-  lab: (props) => <Placeholder name="Lab" {...props} />,
-  fusion: (props) => <Placeholder name="Fusion" {...props} />,
-  reporting: (props) => <Placeholder name="Reporting" {...props} />,
+  admin: AdminPanel,
+  screenings: Screenings,
+  cxr: Screenings,
+  lab: Screenings,
+  clinical: Screenings,
+  fusion: Screenings,
+  reporting: Screenings,
 };
 
 export default function Home() {

@@ -1,170 +1,212 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  createPatient,
+  deletePatient,
+  getPatient,
+  getPatients,
+  logout,
+  runInference,
+  updatePatient,
+} from '../lib/api';
 
-const API_BASE = 'http://127.0.0.1:8000/api/';
-
-function getToken() {
-  return localStorage.getItem('accessToken');
-}
+const emptyPatient = {
+  name: '',
+  age: '',
+  sex: 'male',
+  hiv_status: false,
+  symptoms: '',
+  comorbidities: '',
+};
 
 export default function Patients({ setCurrentFeature }) {
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [isAdding, setIsAdding] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
+  const [form, setForm] = useState(emptyPatient);
+  const [editing, setEditing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     loadPatients();
-  }, []);
+  }, [page]);
 
-  const loadPatients = async () => {
-    setLoading(true);
+  async function loadPatients(nextSearch = search) {
+    setMessage('Loading patients...');
     try {
-      const resp = await fetch(`${API_BASE}patients/`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (!resp.ok) {
-        setMessage('Failed to load patients');
-        return;
-      }
-      const data = await resp.json();
-      setPatients(data);
+      const query = `?page=${page}&limit=10${nextSearch ? `&search=${encodeURIComponent(nextSearch)}` : ''}`;
+      const data = await getPatients(query);
+      setPatients(data.results || []);
       setMessage('');
     } catch (error) {
-      console.error(error);
-      setMessage('Error loading patients');
-    } finally {
-      setLoading(false);
+      setMessage(error.message);
     }
-  };
+  }
 
-  const handleSelectPatient = (patient) => {
-    setSelectedPatient(patient);
-    setIsEditing(false);
-    setIsAdding(false);
-  };
+  function payloadFromForm() {
+    return {
+      name: form.name,
+      age: Number(form.age),
+      sex: form.sex,
+      hiv_status: Boolean(form.hiv_status),
+      symptoms: form.symptoms.split(',').map((item) => item.trim()).filter(Boolean),
+      comorbidities: form.comorbidities.split(',').map((item) => item.trim()).filter(Boolean),
+    };
+  }
 
-  const handleAdd = () => {
-    setIsAdding(true);
-    setIsEditing(false);
+  function startCreate() {
+    setEditing(false);
     setSelectedPatient(null);
-    setName('');
-    setAge('');
-  };
+    setForm(emptyPatient);
+    setMessage('');
+  }
 
-  const handleEdit = () => {
-    if (!selectedPatient) return;
-    setIsEditing(true);
-    setIsAdding(false);
-    setName(selectedPatient.name);
-    setAge(selectedPatient.age);
-  };
+  function startEdit(patient) {
+    setEditing(true);
+    setSelectedPatient(patient);
+    setForm({
+      name: patient.name || '',
+      age: patient.age || '',
+      sex: patient.sex || 'male',
+      hiv_status: Boolean(patient.hiv_status),
+      symptoms: Array.isArray(patient.symptoms) ? patient.symptoms.join(', ') : '',
+      comorbidities: Array.isArray(patient.comorbidities) ? patient.comorbidities.join(', ') : '',
+    });
+  }
 
-  const handleSave = async () => {
-    const payload = { name, age: parseInt(age, 10) };
-    let url = `${API_BASE}patients/`;
-    let method = 'POST';
-    if (isEditing && selectedPatient) {
-      url += `${selectedPatient.id}/`;
-      method = 'PUT';
+  async function savePatient() {
+    if (!form.name || !form.age) {
+      setMessage('Name and age are required.');
+      return;
     }
+
     try {
-      const resp = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify(payload),
-      });
-      if (resp.ok) {
-        setMessage(isEditing ? 'Patient updated successfully' : 'Patient added successfully');
-        loadPatients();
-        setIsAdding(false);
-        setIsEditing(false);
-        setSelectedPatient(null);
+      if (editing && selectedPatient) {
+        await updatePatient(selectedPatient.id, payloadFromForm());
+        setMessage('Patient update sent.');
       } else {
-        setMessage('Failed to save patient');
+        await createPatient(payloadFromForm());
+        setMessage('Patient created.');
       }
+      setForm(emptyPatient);
+      setEditing(false);
+      await loadPatients();
     } catch (error) {
-      console.error(error);
-      setMessage('Error saving patient');
+      setMessage(error.message);
     }
-  };
+  }
 
-  const handleDelete = async () => {
+  async function selectPatient(patient) {
+    try {
+      const detail = await getPatient(patient.id);
+      setSelectedPatient(detail);
+      setMessage('');
+    } catch (error) {
+      setSelectedPatient(patient);
+      setMessage(error.message);
+    }
+  }
+
+  async function removePatient() {
     if (!selectedPatient) return;
     try {
-      const resp = await fetch(`${API_BASE}patients/${selectedPatient.id}/`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (resp.ok) {
-        setMessage('Patient deleted successfully');
-        loadPatients();
-        setSelectedPatient(null);
-      } else {
-        setMessage('Failed to delete patient');
-      }
+      await deletePatient(selectedPatient.id);
+      setMessage('Patient delete sent.');
+      setSelectedPatient(null);
+      await loadPatients();
     } catch (error) {
-      console.error(error);
-      setMessage('Error deleting patient');
+      setMessage(error.message);
     }
-  };
+  }
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+  async function inferPatient() {
+    if (!selectedPatient) return;
+    try {
+      const result = await runInference({
+        patient_id: selectedPatient.id,
+        age: selectedPatient.age,
+        sex: selectedPatient.sex,
+      });
+      setMessage(`Inference complete: ${result.tb_score}% - ${result.triage_recommendation}`);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  function signOut() {
+    logout();
     setCurrentFeature('auth');
-  };
+  }
 
   return (
-    <section>
-      <h2>Patient Management</h2>
-      <div style={{ marginBottom: '8px' }}>
-        <button onClick={loadPatients}>Load Patients</button>
-        <button onClick={handleAdd}>Add Patient</button>
-        <button onClick={() => setCurrentFeature('cxr')}>CXR</button>
-        <button onClick={() => setCurrentFeature('lab')}>Lab</button>
-        <button onClick={() => setCurrentFeature('fusion')}>Fusion</button>
-        <button onClick={() => setCurrentFeature('reporting')}>Reports</button>
-        <button onClick={() => setCurrentFeature('userManagement')}>User Mgmt</button>
-        <button onClick={handleLogout}>Logout</button>
-      </div>
-      {loading && <p>Loading...</p>}
-      <ul>
-        {patients.map(p => (
-          <li key={p.id} onClick={() => handleSelectPatient(p)} style={{ cursor: 'pointer' }}>
-            {p.name} (Age {p.age})
-          </li>
-        ))}
-      </ul>
-      {selectedPatient && (
+    <main>
+      <div className="topbar">
         <div>
-          <h3>Selected patient: {selectedPatient.name}</h3>
+          <h2>Patients</h2>
+          <p className="muted">Create, search, inspect, and send patients into the TB workflow.</p>
+        </div>
+        <button onClick={signOut}>Logout</button>
+      </div>
+
+      <nav className="toolbar">
+        <button onClick={() => setCurrentFeature('screenings')}>Diagnostics</button>
+        <button onClick={() => setCurrentFeature('userManagement')}>Users</button>
+        <button onClick={() => setCurrentFeature('admin')}>Admin Tools</button>
+        <button onClick={startCreate}>New Patient</button>
+      </nav>
+
+      <section className="grid">
+        <div className="panel">
+          <div className="inline">
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name or age" />
+            <button onClick={() => loadPatients(search)}>Search</button>
+          </div>
+          <ul className="list">
+            {patients.map((patient) => (
+              <li key={patient.id} onClick={() => selectPatient(patient)}>
+                <strong>{patient.name}</strong>
+                <span>{patient.age} years, {patient.sex}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="inline">
+            <button onClick={() => setPage(Math.max(1, page - 1))}>Previous</button>
+            <span>Page {page}</span>
+            <button onClick={() => setPage(page + 1)}>Next</button>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h3>{editing ? 'Edit Patient' : 'New Patient'}</h3>
+          <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Full name" />
+          <input type="number" value={form.age} onChange={(event) => setForm({ ...form, age: event.target.value })} placeholder="Age" />
+          <select value={form.sex} onChange={(event) => setForm({ ...form, sex: event.target.value })}>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+          <label className="check">
+            <input type="checkbox" checked={form.hiv_status} onChange={(event) => setForm({ ...form, hiv_status: event.target.checked })} />
+            HIV positive
+          </label>
+          <input value={form.symptoms} onChange={(event) => setForm({ ...form, symptoms: event.target.value })} placeholder="Symptoms, comma separated" />
+          <input value={form.comorbidities} onChange={(event) => setForm({ ...form, comorbidities: event.target.value })} placeholder="Comorbidities, comma separated" />
+          <button onClick={savePatient}>{editing ? 'Save Changes' : 'Create Patient'}</button>
+        </div>
+      </section>
+
+      {selectedPatient && (
+        <section className="panel">
+          <h3>Selected Patient</h3>
           <pre>{JSON.stringify(selectedPatient, null, 2)}</pre>
-          <button onClick={handleEdit}>Edit</button>
-          <button onClick={handleDelete} style={{ marginLeft: '8px' }}>Delete</button>
-        </div>
+          <div className="toolbar">
+            <button onClick={() => startEdit(selectedPatient)}>Edit</button>
+            <button onClick={removePatient}>Delete</button>
+            <button onClick={inferPatient}>Run Inference</button>
+          </div>
+        </section>
       )}
-      {(isAdding || isEditing) && (
-        <div style={{ marginTop: '16px' }}>
-          <h3>{isEditing ? 'Edit patient' : 'Add patient'}</h3>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
-          /><br />
-          <input
-            type="number"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            placeholder="Age"
-          /><br />
-          <button onClick={handleSave}>Save</button>
-        </div>
-      )}
-      <p>{message}</p>
-    </section>
+
+      {message && <p className="message">{message}</p>}
+    </main>
   );
 }

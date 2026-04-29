@@ -1,6 +1,5 @@
 import { useState } from 'react';
-
-const API_BASE = 'http://127.0.0.1:8000/api/';
+import { login, saveSession } from '../lib/api';
 
 export default function Auth({ setCurrentFeature }) {
   const [email, setEmail] = useState('');
@@ -16,23 +15,13 @@ export default function Auth({ setCurrentFeature }) {
     setMessage('Logging in...');
 
     try {
-      const resp = await fetch(`${API_BASE}auth/token/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
-      });
-      const data = await resp.json();
-      if (resp.ok && data.access) {
-        localStorage.setItem('accessToken', data.access);
-        localStorage.setItem('refreshToken', data.refresh);
-        setMessage('Login successful.');
-        setCurrentFeature('patients');
-      } else {
-        setMessage(data.detail || 'Login failed, check credentials.');
-      }
+      const data = await login(email, password, role);
+      saveSession(data);
+      setMessage(`Login successful${data.hospital_name ? ` at ${data.hospital_name}` : ''}.`);
+      setCurrentFeature('patients');
     } catch (error) {
       console.error(error);
-      setMessage('Network error while logging in.');
+      setMessage(error.message || 'Login failed, check credentials.');
     }
   };
 
@@ -58,6 +47,7 @@ export default function Auth({ setCurrentFeature }) {
         <option value="clinician">Clinician</option>
         <option value="radiologist">Radiologist</option>
         <option value="admin">Admin</option>
+        <option value="auditor">Auditor</option>
       </select><br />
       <button onClick={handleLogin}>Login</button>
       <button onClick={() => setCurrentFeature('register')} style={{ marginLeft: '8px' }}>Register</button>

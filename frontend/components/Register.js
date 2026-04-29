@@ -1,11 +1,13 @@
 import { useState } from 'react';
-
-const API_BASE = 'http://127.0.0.1:8000/api/';
+import { registerUser } from '../lib/api';
 
 export default function Register({ setCurrentFeature }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('clinician');
+  const [hospitalCode, setHospitalCode] = useState('');
+  const [hospitalName, setHospitalName] = useState('');
   const [message, setMessage] = useState('');
 
   const handleRegister = async () => {
@@ -15,20 +17,23 @@ export default function Register({ setCurrentFeature }) {
     }
 
     try {
-      const resp = await fetch(`${API_BASE}auth/register/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
+      await registerUser({
+        username,
+        email,
+        password,
+        role,
+        hospital_code: hospitalCode,
+        hospital_name: hospitalName,
       });
-      const data = await resp.json();
-      if (resp.ok) {
-        setMessage('Registration successful. You can now login.');
-      } else {
-        setMessage(data.detail || JSON.stringify(data) || 'Registration failed.');
-      }
+      setMessage('Registration successful. You can now login.');
+      setUsername('');
+      setEmail('');
+      setPassword('');
+      setHospitalCode('');
+      setHospitalName('');
     } catch (error) {
       console.error(error);
-      setMessage('Network error during registration.');
+      setMessage(error.message || 'Registration failed.');
     }
   };
 
@@ -54,6 +59,25 @@ export default function Register({ setCurrentFeature }) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Password"
+      /><br />
+      <label>Role</label><br />
+      <select value={role} onChange={(e) => setRole(e.target.value)}>
+        <option value="clinician">Clinician</option>
+        <option value="radiologist">Radiologist</option>
+        <option value="admin">Admin</option>
+        <option value="auditor">Auditor</option>
+      </select><br />
+      <label>Hospital Code</label><br />
+      <input
+        value={hospitalCode}
+        onChange={(e) => setHospitalCode(e.target.value)}
+        placeholder="Existing code, or new code for admin bootstrap"
+      /><br />
+      <label>Hospital Name</label><br />
+      <input
+        value={hospitalName}
+        onChange={(e) => setHospitalName(e.target.value)}
+        placeholder="Hospital name"
       /><br />
       <button onClick={handleRegister}>Register</button>
       <button onClick={() => setCurrentFeature('auth')} style={{ marginLeft: '8px' }}>Cancel</button>
