@@ -379,19 +379,39 @@ class AIInferenceRunView(APIView):
         except Patient.DoesNotExist:
             return Response({"success": False, "message": "Patient not found in your hospital."}, status=404)
 
+        sex_normalized = None
+        if sex:
+            sex_raw = str(sex).strip().lower()
+            if sex_raw in ["m", "male"]:
+                sex_normalized = "M"
+            elif sex_raw in ["f", "female"]:
+                sex_normalized = "F"
+
+        modality = "tabular"
+        if image_path and age is not None and sex_normalized:
+            modality = "fusion"
+        elif image_path:
+            modality = "image"
+
         # Try to use medi_ai inference
         tb_score = 72.5
+        image_prob = None
+        tabular_prob = None
+        model_source = "fallback"
         triage_recommendation = "high risk - refer to GeneXpert"
         try:
             from inference.engine import TBInferenceEngine
             engine = TBInferenceEngine()
             engine.load_models()
-            result = engine.predict(image_path=image_path, age=age, sex=sex)
+            result = engine.predict(image_path=image_path, age=age, sex=sex_normalized)
             if "error" not in result:
                 tb_score = result["tb_score"]
+                image_prob = result.get("image_prob")
+                tabular_prob = result.get("tabular_prob")
                 triage_recommendation = result["triage_recommendation"]
-        except ImportError:
-            pass  # Use dummy values
+                model_source = "medi_ai"
+        except Exception:
+            pass  # Use fallback values when local AI dependencies/models are unavailable.
 
         screening = Screening.objects.create(
             patient=patient,
@@ -407,8 +427,12 @@ class AIInferenceRunView(APIView):
                 "screening_id": str(screening.id),
                 "patient_id": patient.id,
                 "tb_score": screening.tb_score,
+                "image_prob": image_prob,
+                "tabular_prob": tabular_prob,
                 "heatmap_url": screening.heatmap_url,
                 "triage_recommendation": screening.triage_recommendation,
+                "input_modality": modality,
+                "model_source": model_source,
             },
             status=status.HTTP_200_OK,
         )

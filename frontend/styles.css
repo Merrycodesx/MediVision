@@ -135,3 +135,55 @@ pre {
   width: auto;
   min-height: auto;
 }
+
+.aiResult {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(240px, 1fr);
+  gap: 16px;
+  border-left: 6px solid #166e63;
+}
+
+.aiResult h3 {
+  margin-bottom: 4px;
+  font-size: 32px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #5b6878;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.scoreGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.scoreGrid span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.riskHigh {
+  border-left-color: #b42318;
+}
+
+.riskMedium {
+  border-left-color: #b7791f;
+}
+
+.riskLow {
+  border-left-color: #166e63;
+}
+
+@media (max-width: 720px) {
+  .aiResult {
+    grid-template-columns: 1fr;
+  }
+}
