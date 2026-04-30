@@ -279,6 +279,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             return ROLE_MAP[raw]
         if value in ROLE_MAP_REVERSE:
             return value
+        normalized = str(value or '').strip().upper()
+        if normalized in ROLE_MAP_REVERSE:
+            return normalized
         raise serializers.ValidationError("Invalid role.")
 
     def create(self, validated_data):
@@ -298,7 +301,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         if hospital is None and hospital_code:
             hospital = Hospital.objects.filter(code__iexact=hospital_code).first()
             if hospital is None and role == 'L':
-                # Allow admin to bootstrap a new hospital by code.
+                # Allow local admin bootstrap for a new hospital code.
                 hospital = Hospital.objects.create(
                     code=hospital_code.upper(),
                     name=hospital_name or f"Hospital {hospital_code.upper()}",
