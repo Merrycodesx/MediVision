@@ -55,6 +55,7 @@ medV-env-new/
 
 # Node.js
 node_modules/
+.next/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
