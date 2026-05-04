@@ -93,5 +93,50 @@ class ClinicalData(models.Model):
 
     def __str__(self):
         return f"Clinical data for {self.patient.full_name}"
-    
+
+
+class ImageRecord(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='images')
+    image_path = models.CharField(max_length=512)
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_images')
+    hospital = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name='images')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image {self.id} for {self.patient.full_name}"
+
+
+class LabResult(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='lab_results')
+    genexpert = models.CharField(max_length=120, blank=True, default='')
+    smear = models.CharField(max_length=120, blank=True, default='')
+    culture = models.CharField(max_length=120, blank=True, default='')
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_lab_results')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"LabResult {self.id} for {self.patient.full_name}"
+
+
+class Feedback(models.Model):
+    screening = models.ForeignKey(Screening, on_delete=models.CASCADE, related_name='feedbacks')
+    note = models.TextField()
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='feedbacks')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Feedback {self.id} on {self.screening.id}"
+
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='audit_logs')
+    action = models.CharField(max_length=120)
+    target_type = models.CharField(max_length=120, blank=True)
+    target_id = models.CharField(max_length=128, blank=True)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Audit {self.id}: {self.action} by {self.user.email}"
 

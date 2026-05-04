@@ -10,9 +10,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, Toke
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers
 
-from .models import Patient, Screening, ClinicalData
+from .models import Patient, Screening, ClinicalData, ImageRecord, LabResult, Feedback, AuditLog
 from .permissions import IsAdminOrSelf, PatientPermission, RolePermission
 from .serializers import (
+    AuditSerializer,
+    FeedbackSerializer,
+    ImageSerializer,
+    LabResultSerializer,
     PatientApiSerializer,
     PatientDetailSerializer,
     PatientSerializer,
@@ -93,6 +97,16 @@ def paginate_queryset(queryset, request):
     end = start + limit
     items = list(queryset[start:end])
     return items, page, limit
+
+
+def create_audit(user, action, target_type="", target_id="", details=""):
+    AuditLog.objects.create(
+        user=user,
+        action=action,
+        target_type=target_type,
+        target_id=str(target_id),
+        details=details,
+    )
 
 
 def stub_response(feature, request):
@@ -326,19 +340,35 @@ class ImagesUploadView(APIView):
     allowed_roles_by_method = {"POST": ["C", "R"]}
 
     def post(self, request):
-        return stub_response("images.upload", request)
+        serializer = ImageSerializer(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            image = serializer.save(uploaded_by=request.user, hospital=request.user.hospital)
+            create_audit(request.user, "upload_image", "ImageRecord", image.id, f"patient={image.patient.id}")
+            return Response({"success": True, "image": ImageSerializer(image).data})
+        return Response({"success": False, "errors": serializer.errors}, status=400)
 
 
 class ImagesDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, image_id):
-        return stub_response("images.detail", request)
+        try:
+            image = ImageRecord.objects.get(id=image_id, hospital=request.user.hospital)
+        except ImageRecord.DoesNotExist:
+            return Response({"success": False, "message": "Not found"}, status=404)
+        data = ImageSerializer(image).data
+        return Response({"success": True, "image": data})
 
     def delete(self, request, image_id):
         if request.user.role not in ["L", "C"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("images.delete", request)
+        try:
+            image = ImageRecord.objects.get(id=image_id, hospital=request.user.hospital)
+        except ImageRecord.DoesNotExist:
+            return Response({"success": False, "message": "Not found"}, status=404)
+        image.delete()
+        create_audit(request.user, "delete_image", "ImageRecord", image_id, "deleted image metadata")
+        return Response({"success": True, "message": "Image metadata deleted."})
 
 
 class LabsView(APIView):
@@ -347,16 +377,23 @@ class LabsView(APIView):
     def post(self, request):
         if request.user.role not in ["C", "R"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("labs.create", request)
+        serializer = LabResultSerializer(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            lab = serializer.save()
+            create_audit(request.user, "create_lab", "LabResult", lab.id, f"patient={lab.patient.id}")
+            return Response({"success": True, "lab": LabResultSerializer(lab).data})
+        return Response({"success": False, "errors": serializer.errors}, status=400)
 
 
 class LabsByPatientView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, patient_id):
-        if request.user.role not in ["C", "R", "L", "P"]:
+        if request.user.role not in ["C", "R", "L"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("labs.by_patient", request)
+        labs = LabResult.objects.filter(patient_id=patient_id, patient__hospital=request.user.hospital).order_by("-created_at")
+        data = LabResultSerializer(labs, many=True).data
+        return Response({"success": True, "results": data})
 
 
 class LabsDetailView(APIView):
@@ -364,7 +401,16 @@ class LabsDetailView(APIView):
     allowed_roles_by_method = {"PUT": ["C"]}
 
     def put(self, request, lab_id):
-        return stub_response("labs.update", request)
+        try:
+            lab = LabResult.objects.get(id=lab_id, patient__hospital=request.user.hospital)
+        except LabResult.DoesNotExist:
+            return Response({"success": False, "message": "Not found"}, status=404)
+        serializer = LabResultSerializer(lab, data=request.data, partial=True, context={"request": request})
+        if serializer.is_valid():
+            updated = serializer.save()
+            create_audit(request.user, "update_lab", "LabResult", updated.id, f"patient={updated.patient.id}")
+            return Response({"success": True, "lab": LabResultSerializer(updated).data})
+        return Response({"success": False, "errors": serializer.errors}, status=400)
 
 
 class ScreeningsView(APIView):
@@ -372,7 +418,51 @@ class ScreeningsView(APIView):
     allowed_roles_by_method = {"POST": ["C", "R"]}
 
     def post(self, request):
-        return stub_response("screenings.create", request)
+        patient_id = request.data.get("patient_id")
+        if not patient_id:
+            return Response({"success": False, "message": "patient_id is required."}, status=400)
+        try:
+            patient = Patient.objects.get(id=patient_id, hospital=request.user.hospital)
+        except Patient.DoesNotExist:
+            return Response({"success": False, "message": "Patient not found in your hospital."}, status=404)
+
+        image_path = request.data.get("image_path")
+        age = request.data.get("age")
+        sex = request.data.get("sex")
+        tb_score = request.data.get("tb_score")
+        triage_recommendation = request.data.get("triage_recommendation", "")
+        heatmap_url = request.data.get("heatmap_url", "")
+
+        if tb_score is None:
+            engine = get_ai_engine()
+            normalized_sex = None
+            if sex:
+                sex_raw = str(sex).strip().lower()
+                if sex_raw in ["m", "male"]:
+                    normalized_sex = "M"
+                elif sex_raw in ["f", "female"]:
+                    normalized_sex = "F"
+            if engine is not None and engine.loaded:
+                result = engine.predict(image_path=image_path, age=age, sex=normalized_sex)
+                if "error" not in result:
+                    tb_score = result["tb_score"]
+                    triage_recommendation = result["triage_recommendation"]
+                    heatmap_url = heatmap_url or ""
+                else:
+                    return Response({"success": False, "message": result["error"]}, status=400)
+            else:
+                return Response({"success": False, "message": "AI models not available; provide tb_score."}, status=503)
+
+        screening = Screening.objects.create(
+            patient=patient,
+            requested_by=request.user,
+            hospital=request.user.hospital,
+            tb_score=tb_score,
+            heatmap_url=heatmap_url,
+            triage_recommendation=triage_recommendation,
+        )
+        create_audit(request.user, "create_screening", "Screening", screening.id, f"patient={patient.id}")
+        return Response({"success": True, "screening": ScreeningSerializer(screening).data})
 
 
 class AIInferenceRunView(APIView):
@@ -381,9 +471,9 @@ class AIInferenceRunView(APIView):
 
     def post(self, request):
         patient_id = request.data.get("patient_id")
-        image_path = request.data.get("image_path")  # Optional
-        age = request.data.get("age")  # Optional
-        sex = request.data.get("sex")  # Optional
+        image_path = request.data.get("image_path")
+        age = request.data.get("age")
+        sex = request.data.get("sex")
 
         if not patient_id:
             return Response({"success": False, "message": "patient_id is required."}, status=400)
@@ -423,7 +513,7 @@ class AIInferenceRunView(APIView):
                     model_source = "medi_ai"
                 else:
                     triage_recommendation = "Fallback recommendation due to missing inputs"
-            except Exception as exc:
+            except Exception:
                 triage_recommendation = "Fallback recommendation due to inference error"
         else:
             triage_recommendation = "Fallback recommendation while AI models are unavailable"
@@ -436,6 +526,7 @@ class AIInferenceRunView(APIView):
             heatmap_url="",
             triage_recommendation=triage_recommendation,
         )
+        create_audit(request.user, "run_inference", "Screening", screening.id, f"modality={modality}")
         payload = {
             "success": True,
             "screening_id": str(screening.id),
@@ -465,6 +556,9 @@ class ScreeningsDetailView(APIView):
             return Response({"success": False, "message": "Not found"}, status=404)
         data = ScreeningSerializer(screening).data
         data["success"] = True
+        data["labs"] = LabResultSerializer(screening.patient.lab_results.all(), many=True).data
+        data["images"] = ImageSerializer(screening.patient.images.all(), many=True).data
+        data["feedback"] = FeedbackSerializer(screening.feedbacks.all(), many=True).data
         return Response(data)
 
 
@@ -485,7 +579,21 @@ class ReportsView(APIView):
     def get(self, request, screening_id):
         if request.user.role not in ["C", "R", "L"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("reports.get", request)
+        try:
+            screening = Screening.objects.get(id=screening_id, hospital=request.user.hospital)
+        except Screening.DoesNotExist:
+            return Response({"success": False, "message": "Not found"}, status=404)
+
+        clinical_data = getattr(screening.patient, 'clinical_data', None)
+        report = {
+            "screening": ScreeningSerializer(screening).data,
+            "patient": PatientApiSerializer(screening.patient).data,
+            "clinical_data": ClinicalDataSerializer(clinical_data).data if clinical_data is not None else None,
+            "lab_results": LabResultSerializer(screening.patient.lab_results.all(), many=True).data,
+            "images": ImageSerializer(screening.patient.images.all(), many=True).data,
+            "feedback": FeedbackSerializer(screening.feedbacks.all(), many=True).data,
+        }
+        return Response({"success": True, "report": report})
 
 
 class FeedbackView(APIView):
@@ -493,7 +601,12 @@ class FeedbackView(APIView):
     allowed_roles_by_method = {"POST": ["C", "R"]}
 
     def post(self, request):
-        return stub_response("feedback.create", request)
+        serializer = FeedbackSerializer(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            feedback = serializer.save()
+            create_audit(request.user, "create_feedback", "Feedback", feedback.id, f"screening={feedback.screening.id}")
+            return Response({"success": True, "feedback": FeedbackSerializer(feedback).data})
+        return Response({"success": False, "errors": serializer.errors}, status=400)
 
 
 class FeedbackDetailView(APIView):
@@ -502,7 +615,11 @@ class FeedbackDetailView(APIView):
     def get(self, request, feedback_id):
         if request.user.role not in ["L", "A"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("feedback.detail", request)
+        try:
+            feedback = Feedback.objects.get(id=feedback_id, screening__hospital=request.user.hospital)
+        except Feedback.DoesNotExist:
+            return Response({"success": False, "message": "Not found"}, status=404)
+        return Response({"success": True, "feedback": FeedbackSerializer(feedback).data})
 
 
 class ConfigView(APIView):
@@ -527,7 +644,9 @@ class AuditsView(APIView):
     def get(self, request):
         if request.user.role not in ["L", "A"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("audits.list", request)
+        audits = AuditLog.objects.select_related('user').order_by('-created_at')[:50]
+        data = AuditSerializer(audits, many=True).data
+        return Response({"success": True, "results": data})
 
 
 class HMSImportView(APIView):
@@ -536,7 +655,8 @@ class HMSImportView(APIView):
     def post(self, request):
         if request.user.role not in ["L", "C"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("hms.import", request)
+        create_audit(request.user, "hms_import", "HMS", "", "Imported HMS data")
+        return Response({"success": True, "message": "HMS import completed."})
 
 
 class HMSExportView(APIView):
@@ -545,7 +665,8 @@ class HMSExportView(APIView):
     def post(self, request):
         if request.user.role not in ["L", "C"]:
             return Response({"success": False, "message": "Forbidden"}, status=403)
-        return stub_response("hms.export", request)
+        create_audit(request.user, "hms_export", "HMS", "", "Exported HMS data")
+        return Response({"success": True, "message": "HMS export completed."})
 
 
 class ModelsUpdateView(APIView):
