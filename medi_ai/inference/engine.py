@@ -15,15 +15,17 @@ class TBInferenceEngine:
         self.fusion_model = None
         self.scaler = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.loaded = False
 
     def load_models(self):
         models_dir = os.path.join(os.path.dirname(__file__), '..', 'models', 'trained')
         
         # Load CNN
-        from models.cnn import DenseNetCNN
-        self.cnn_model = DenseNetCNN()
+        self.cnn_model = None
         cnn_path = os.path.join(models_dir, 'densenet_cnn.pth')
         if os.path.exists(cnn_path):
+            from models.cnn import DenseNetCNN
+            self.cnn_model = DenseNetCNN()
             self.cnn_model.load_state_dict(torch.load(cnn_path, map_location=self.device))
             self.cnn_model.to(self.device)
             self.cnn_model.eval()
@@ -46,6 +48,8 @@ class TBInferenceEngine:
             with open(scaler_path, 'rb') as f:
                 self.scaler = pickle.load(f)
 
+        self.loaded = any([self.cnn_model is not None, self.xgb_model is not None, self.fusion_model is not None, self.scaler is not None])
+
     def preprocess_image(self, image_path):
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -61,8 +65,8 @@ class TBInferenceEngine:
         image_tensor = self.preprocess_image(image_path)
         with torch.no_grad():
             outputs = self.cnn_model(image_tensor)
-            probs = torch.softmax(outputs, dim=1)
-            return probs.cpu().numpy()[0][1]  # Probability of TB
+            probs = torch.sigmoid(outputs)
+            return probs.cpu().numpy()[0][0]  # Probability of TB
 
     def predict_tabular(self, age, sex):
         if self.xgb_model is None or self.scaler is None:
@@ -107,6 +111,6 @@ class TBInferenceEngine:
         return {
             "tb_score": round(tb_score, 2),
             "triage_recommendation": recommendation,
-            "image_prob": round(img_prob * 100, 2) if img_prob else None,
-            "tabular_prob": round(tab_prob * 100, 2) if tab_prob else None,
+            "image_prob": round(img_prob * 100, 2) if img_prob is not None else None,
+            "tabular_prob": round(tab_prob * 100, 2) if tab_prob is not None else None,
         }

@@ -188,7 +188,7 @@ function screenPatient(patient) {
         body: JSON.stringify({
             patient_id: patient.id,
             age: patient.age,
-            sex: patient.sex || 'unknown'
+            sex: patient.sex,
         }),
     })
     .then(response => response.json())

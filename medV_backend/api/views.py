@@ -26,6 +26,19 @@ from .serializers import (
 User = get_user_model()
 
 CONFIG_STATE = {"sensitivity_threshold": 0.95, "other_params": {}}
+AI_ENGINE = None
+
+
+def get_ai_engine():
+    global AI_ENGINE
+    if AI_ENGINE is None:
+        try:
+            from inference.engine import TBInferenceEngine
+        except ImportError:
+            return None
+        AI_ENGINE = TBInferenceEngine()
+        AI_ENGINE.load_models()
+    return AI_ENGINE
 
 
 @api_view(['GET'])
@@ -393,25 +406,27 @@ class AIInferenceRunView(APIView):
         elif image_path:
             modality = "image"
 
-        # Try to use medi_ai inference
         tb_score = 72.5
         image_prob = None
         tabular_prob = None
-        model_source = "fallback"
         triage_recommendation = "high risk - refer to GeneXpert"
-        try:
-            from inference.engine import TBInferenceEngine
-            engine = TBInferenceEngine()
-            engine.load_models()
-            result = engine.predict(image_path=image_path, age=age, sex=sex_normalized)
-            if "error" not in result:
-                tb_score = result["tb_score"]
-                image_prob = result.get("image_prob")
-                tabular_prob = result.get("tabular_prob")
-                triage_recommendation = result["triage_recommendation"]
-                model_source = "medi_ai"
-        except Exception:
-            pass  # Use fallback values when local AI dependencies/models are unavailable.
+        model_source = "fallback"
+        engine = get_ai_engine()
+        if engine is not None and engine.loaded:
+            try:
+                result = engine.predict(image_path=image_path, age=age, sex=sex_normalized)
+                if "error" not in result:
+                    tb_score = result["tb_score"]
+                    image_prob = result.get("image_prob")
+                    tabular_prob = result.get("tabular_prob")
+                    triage_recommendation = result["triage_recommendation"]
+                    model_source = "medi_ai"
+                else:
+                    triage_recommendation = "Fallback recommendation due to missing inputs"
+            except Exception as exc:
+                triage_recommendation = "Fallback recommendation due to inference error"
+        else:
+            triage_recommendation = "Fallback recommendation while AI models are unavailable"
 
         screening = Screening.objects.create(
             patient=patient,
@@ -421,21 +436,21 @@ class AIInferenceRunView(APIView):
             heatmap_url="",
             triage_recommendation=triage_recommendation,
         )
-        return Response(
-            {
-                "success": True,
-                "screening_id": str(screening.id),
-                "patient_id": patient.id,
-                "tb_score": screening.tb_score,
-                "image_prob": image_prob,
-                "tabular_prob": tabular_prob,
-                "heatmap_url": screening.heatmap_url,
-                "triage_recommendation": screening.triage_recommendation,
-                "input_modality": modality,
-                "model_source": model_source,
-            },
-            status=status.HTTP_200_OK,
-        )
+        payload = {
+            "success": True,
+            "screening_id": str(screening.id),
+            "patient_id": patient.id,
+            "tb_score": screening.tb_score,
+            "image_prob": image_prob,
+            "tabular_prob": tabular_prob,
+            "heatmap_url": screening.heatmap_url,
+            "triage_recommendation": screening.triage_recommendation,
+            "input_modality": modality,
+            "model_source": model_source,
+        }
+        if model_source != "medi_ai":
+            payload["message"] = "AI models are not loaded; returning fallback results."
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class ScreeningsDetailView(APIView):
@@ -538,7 +553,13 @@ class ModelsUpdateView(APIView):
     allowed_roles_by_method = {"POST": ["L"]}
 
     def post(self, request):
-        return stub_response("models.update", request)
+        engine = get_ai_engine()
+        if engine is None:
+            return Response({"success": False, "message": "AI backend unavailable."}, status=503)
+
+        engine.load_models()
+        ready = any([engine.cnn_model is not None, engine.xgb_model is not None, engine.fusion_model is not None, engine.scaler is not None])
+        return Response({"success": True, "models_loaded": ready})
 
 
 class ModelsListView(APIView):
@@ -546,7 +567,22 @@ class ModelsListView(APIView):
     allowed_roles_by_method = {"GET": ["L"]}
 
     def get(self, request):
-        return Response({"success": True, "models": []})
+        engine = get_ai_engine()
+        if engine is None:
+            return Response({"success": True, "models": [], "loaded": False})
+
+        return Response(
+            {
+                "success": True,
+                "loaded": engine.loaded,
+                "models": [
+                    {"name": "cnn", "loaded": engine.cnn_model is not None},
+                    {"name": "xgboost", "loaded": engine.xgb_model is not None},
+                    {"name": "fusion", "loaded": engine.fusion_model is not None},
+                    {"name": "scaler", "loaded": engine.scaler is not None},
+                ],
+            }
+        )
 
 
 # Backward-compat endpoint names retained.
