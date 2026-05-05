@@ -4,12 +4,13 @@ from . import views
 
 # Variable must be named 'urlpatterns'
 urlpatterns = [
+    path('', views.api_root, name='api-root'),
+    path('test/', views.my_view, name='test_view'),
     # Patient management
     path('patients/', views.PatientListCreateView.as_view(), name='patients-list-create'),
     path('patients/<int:pk>/', views.patientDetailView.as_view(), name='patient-detail-legacy'),
     path('patients/<int:patient_id>/', views.PatientDetailView.as_view(), name='patient-detail'),
-   
-    # Authentication
+    path('clinical/', views.ClinicalDataCreateView.as_view(), name='clinical-create'),
     path('auth/register/', views.RegisterView.as_view(), name='auth-register'),
     path('auth/login/', views.AuthLoginView.as_view(), name='auth-login'),
     path('auth/refresh/', views.AuthRefreshView.as_view(), name='auth-refresh'),
