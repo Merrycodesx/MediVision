@@ -4,13 +4,16 @@ from . import views
 
 # Variable must be named 'urlpatterns'
 urlpatterns = [
-    path('test/', views.my_view, name='test_view'),
+    path('', views.api_root, name='api-root'),
+
+    # Patient management
     path('patients/', views.PatientListCreateView.as_view(), name='patients-list-create'),
     path('patients/<int:pk>/', views.patientDetailView.as_view(), name='patient-detail-legacy'),
     path('patients/<int:patient_id>/', views.PatientDetailView.as_view(), name='patient-detail'),
    
     # Authentication
     path('auth/register/', views.RegisterView.as_view(), name='auth-register'),
+    path('auth/register-hospital/', views.RegisterHospitalView.as_view(), name='auth-register-hospital'),
     path('auth/login/', views.AuthLoginView.as_view(), name='auth-login'),
     path('auth/refresh/', views.AuthRefreshView.as_view(), name='auth-refresh'),
     path('auth/logout/', views.AuthLogoutView.as_view(), name='auth-logout'),
@@ -55,6 +58,7 @@ urlpatterns = [
     # HMS integration
     path('hms/import/', views.HMSImportView.as_view(), name='hms-import'),
     path('hms/export/', views.HMSExportView.as_view(), name='hms-export'),
+    path('sync/', views.SyncView.as_view(), name='sync'),
 
     # Model management
     path('models/update/', views.ModelsUpdateView.as_view(), name='models-update'),

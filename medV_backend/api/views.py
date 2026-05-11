@@ -11,6 +11,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers
 
 from .models import Patient, Screening
+from .models import Hospital, Patient, Screening, ClinicalData, ImageRecord, LabResult, Feedback, AuditLog
 from .permissions import IsAdminOrSelf, PatientPermission, RolePermission
 from .serializers import (
     PatientApiSerializer,
