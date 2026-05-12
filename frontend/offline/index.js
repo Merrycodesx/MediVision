@@ -32,7 +32,7 @@ export async function syncOfflineQueue() {
         method: item.method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify(item.body),
       });
