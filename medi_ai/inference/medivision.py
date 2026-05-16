@@ -11,6 +11,7 @@ import os
 from typing import Dict, Optional, Tuple, Union, List
 from pathlib import Path
 import logging
+import cv2
 
 from models.cnn import DenseNetCNN
 from models.tabular import XGBoostClassifier
@@ -191,10 +192,17 @@ class MediVisionInference:
             prediction = 'TB' if probability > self.threshold else 'No TB'
             confidence = max(probability, 1 - probability)
             
+            base_name = os.path.basename(image_path)
+            heatmap_save_path = os.path.join(config.PLOTS_DIR, "gradcam_explainability", f"heatmap_{base_name}")
+            
+            # Generate it dynamically during inference
+            self.generate_gradcam(image_path, heatmap_save_path)
+
             return {
                 'probability': float(probability),
                 'prediction': prediction,
                 'confidence': float(confidence),
+                'heatmap_path': heatmap_save_path,
                 'model': 'DenseNet121',
                 'status': 'success'
             }
@@ -373,6 +381,73 @@ class MediVisionInference:
         
         self.threshold = threshold
         logger.info(f"Decision threshold updated to {threshold:.2%}")
+
+    def generate_gradcam(self, image_path: str, save_path: str) -> str:
+        """
+        Generates a Grad-CAM heatmap overlay for a given X-ray image 
+        and saves it to the specified location.
+        """
+        if self.image_model is None:
+            raise RuntimeError("Image model not loaded.")
+
+        # 1. Load and preprocess image specifically with gradient tracking enabled
+        from PIL import Image
+        image = Image.open(image_path).convert('RGB')
+        image_array = np.array(image)
+        image_tensor = self.image_preprocessor.preprocess(image_array)
+        image_tensor = image_tensor.unsqueeze(0).to(self.device)
+
+        # 2. Extract feature maps from DenseNet's last block
+        features_layer = self.image_model.features
+        
+        self.image_model.eval()
+        with torch.enable_grad():
+            # Run forward pass up to feature maps
+            feature_maps = features_layer(image_tensor)
+            feature_maps.requires_grad_()
+            
+            # Replicate the classifier pool/flatten path
+            import torch.nn.functional as F
+            pooled = F.adaptive_avg_pool2d(feature_maps, (1, 1))
+            flattened = torch.flatten(pooled, 1)
+            output = self.image_model.classifier(flattened)
+            
+            # Target the class driving the prediction
+            target_class = output.argmax(dim=1)
+            score = output[0][target_class]
+            
+            # Backward pass to gather gradients
+            self.image_model.zero_grad()
+            score.backward()
+
+        # 3. Process Gradients & Feature Maps
+        gradients = feature_maps.grad.detach().cpu().numpy()[0]
+        feature_maps = feature_maps.detach().cpu().numpy()[0]
+        
+        # Calculate weights based on mean gradient intensity
+        weights = np.mean(gradients, axis=(1, 2))
+        cam = np.zeros(feature_maps.shape[1:], dtype=np.float32)
+        
+        for i, w in enumerate(weights):
+            cam += w * feature_maps[i]
+            
+        # 4. Clean up map (ReLU + Normalize)
+        cam = np.maximum(cam, 0)
+        cam = cv2.resize(cam, (224, 224))
+        cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+
+        # 5. Load original and overlay the Jet color map
+        img = cv2.imread(image_path)
+        img = cv2.resize(img, (224, 224))
+        
+        heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
+        overlay_result = cv2.addWeighted(img, 0.6, heatmap, 0.4, 0)
+        
+        # Save output to your structured directory
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        cv2.imwrite(save_path, overlay_result)
+        logger.info(f"[XAI] Grad-CAM saved successfully to {save_path}")
+        return save_path
     
     def get_model_info(self) -> Dict[str, any]:
         """
