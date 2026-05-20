@@ -117,6 +117,50 @@ body {
   object-fit: cover;
   object-position: center center;
   display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.landingImageCredit {
+  position: absolute;
+  bottom: clamp(12px, 2.5vw, 20px);
+  left: clamp(12px, 2.5vw, 20px);
+  z-index: 2;
+  max-width: min(300px, 46vw);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(12, 31, 42, 0.72);
+  border: 1px solid rgba(210, 235, 246, 0.22);
+  color: #d4e6f0;
+  font-size: 12px;
+  line-height: 1.4;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.landingImageCredit:hover,
+.landingImageCredit:focus-visible {
+  background: rgba(12, 31, 42, 0.9);
+  border-color: rgba(210, 235, 246, 0.42);
+  color: #f2fbff;
+  outline: 2px solid rgba(120, 200, 230, 0.55);
+  outline-offset: 2px;
+}
+
+.landingImageCredit__eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ec8dc;
+}
+
+.landingImageCredit__text {
+  display: block;
 }
 
 .landingOverlay {

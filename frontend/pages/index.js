@@ -8,6 +8,7 @@ import Screenings from '../components/Screenings';
 import Offline from '../components/Offline';
 import Footer from '../components/Footer';
 import AppHeader from '../components/AppHeader';
+import LandingImageCredit from '../components/LandingImageCredit';
 import { useUI } from '../lib/ui-context';
 
 function Placeholder({ name, setCurrentFeature }) {
@@ -70,12 +71,13 @@ export default function Home() {
       <div id="feature-container">
         {isLanding ? (
           <section className="landingHero" role="banner" aria-label="MediVision landing page">
-            <div className="landingHeroMedia" aria-hidden="true">
+            <div className="landingHeroMedia">
               <img
                 src="/landing-bg.png"
-                alt=""
+                alt="Child recovering from tuberculosis at a hospital in Ethiopia"
                 className="landingHeroBg"
               />
+              <LandingImageCredit />
             </div>
             <div className="landingOverlay">
               <h1>{t('app_title', 'MediVision Multimodal TB CAD')}</h1>
