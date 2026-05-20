@@ -48,6 +48,17 @@ coverage.xml
 *.cover
 *.py.cover
 .hypothesis/
+
+# Virtual environments
+medV-env/
+medV-env-new/
+
+# Node.js
+node_modules/
+.next/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .pytest_cache/
 cover/
 
@@ -144,6 +155,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+medV-env/
+medV-env-new/
 
 # Spyder project settings
 .spyderproject
@@ -189,7 +202,7 @@ cython_debug/
 .pypirc
 
 
-medV_backend/api/migrations/*
+# medV_backend/api/migrations/*
 medV_backend/cxr_images/*
 medV_backend/Pipfile.lock
 medV_backend/Pipfile
@@ -198,3 +211,4 @@ TEAM_WORKFLOW.md
 TEAM_WORKFLOW.txt
 medV-env/
 medV_Desktop/*
+medV-Desktop/*

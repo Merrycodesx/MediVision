@@ -10,13 +10,14 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, Toke
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers
 
-from .models import Patient, Screening
+from .models import Patient, Screening, ClinicalData
 from .permissions import IsAdminOrSelf, PatientPermission, RolePermission
 from .serializers import (
     PatientApiSerializer,
     PatientDetailSerializer,
     PatientSerializer,
     ScreeningSerializer,
+    ClinicalDataSerializer,
     UserCreateUpdateSerializer,
     UserRegisterSerializer,
     UserSerializer,
@@ -25,6 +26,49 @@ from .serializers import (
 User = get_user_model()
 
 CONFIG_STATE = {"sensitivity_threshold": 0.95, "other_params": {}}
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_root(request):
+    return Response({
+        "message": "MediVision API",
+        "version": "1.0",
+        "endpoints": {
+            "auth": {
+                "register": "/api/auth/register/",
+                "login": "/api/auth/login/",
+                "token": "/api/auth/token/",
+                "refresh": "/api/auth/refresh/",
+                "logout": "/api/auth/logout/"
+            },
+            "patients": "/api/patients/",
+            "users": "/api/users/",
+            "inference": "/api/inference/run/",
+            "images": "/api/images/upload/",
+            "labs": "/api/labs/",
+            "screenings": "/api/screenings/",
+            "reports": "/api/reports/<screening_id>/",
+            "feedback": "/api/feedback/",
+            "config": "/api/config/",
+            "audits": "/api/audits/",
+            "hms": {
+                "import": "/api/hms/import/",
+                "export": "/api/hms/export/"
+            },
+            "models": "/api/models/"
+        }
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_auth_root(request):
+    return Response({
+        "message": "Django REST Framework Authentication",
+        "login": "/api-auth/login/",
+        "logout": "/api-auth/logout/"
+    })
 
 
 def paginate_queryset(queryset, request):
@@ -53,6 +97,47 @@ def stub_response(feature, request):
 
 def my_view(request):
     return JsonResponse({"status": "success", "message": "Welcome to the TEST api?"})
+from .serializers import PatientSerializer, PatientDetailSerializer, UserRegisterSerializer, ClinicalDataSerializer
+from .models import Patient
+from rest_framework import generics
+from .permissions import PatientPermission
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
+def my_view(request):
+    data = {
+            "status": "success",
+            "message": "Welcome to the TEST api?",
+        }
+    return JsonResponse(data)
+
+
+class PatientListCreateView(generics.ListCreateAPIView):
+    queryset = Patient.objects.all()
+    serializer_class = PatientApiSerializer
+    permission_classes = [IsAuthenticated, PatientPermission]
+
+
+    def perform_create(self, serializer):
+        serializer.save(clinician_id=self.request.user)
+
+class patientDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Patient.objects.all()
+    serializer_class = PatientDetailSerializer
+    permission_classes = [IsAuthenticated, PatientPermission]
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class ClinicalDataCreateView(generics.CreateAPIView):
+    serializer_class = ClinicalDataSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save()
 
 
 class RegisterView(generics.CreateAPIView):
@@ -283,6 +368,10 @@ class AIInferenceRunView(APIView):
 
     def post(self, request):
         patient_id = request.data.get("patient_id")
+        image_path = request.data.get("image_path")  # Optional
+        age = request.data.get("age")  # Optional
+        sex = request.data.get("sex")  # Optional
+
         if not patient_id:
             return Response({"success": False, "message": "patient_id is required."}, status=400)
         try:
@@ -290,13 +379,47 @@ class AIInferenceRunView(APIView):
         except Patient.DoesNotExist:
             return Response({"success": False, "message": "Patient not found in your hospital."}, status=404)
 
+        sex_normalized = None
+        if sex:
+            sex_raw = str(sex).strip().lower()
+            if sex_raw in ["m", "male"]:
+                sex_normalized = "M"
+            elif sex_raw in ["f", "female"]:
+                sex_normalized = "F"
+
+        modality = "tabular"
+        if image_path and age is not None and sex_normalized:
+            modality = "fusion"
+        elif image_path:
+            modality = "image"
+
+        # Try to use medi_ai inference
+        tb_score = 72.5
+        image_prob = None
+        tabular_prob = None
+        model_source = "fallback"
+        triage_recommendation = "high risk - refer to GeneXpert"
+        try:
+            from inference.engine import TBInferenceEngine
+            engine = TBInferenceEngine()
+            engine.load_models()
+            result = engine.predict(image_path=image_path, age=age, sex=sex_normalized)
+            if "error" not in result:
+                tb_score = result["tb_score"]
+                image_prob = result.get("image_prob")
+                tabular_prob = result.get("tabular_prob")
+                triage_recommendation = result["triage_recommendation"]
+                model_source = "medi_ai"
+        except Exception:
+            pass  # Use fallback values when local AI dependencies/models are unavailable.
+
         screening = Screening.objects.create(
             patient=patient,
             requested_by=request.user,
             hospital=request.user.hospital,
-            tb_score=72.5,
+            tb_score=tb_score,
             heatmap_url="",
-            triage_recommendation="high risk - refer to GeneXpert",
+            triage_recommendation=triage_recommendation,
         )
         return Response(
             {
@@ -304,8 +427,12 @@ class AIInferenceRunView(APIView):
                 "screening_id": str(screening.id),
                 "patient_id": patient.id,
                 "tb_score": screening.tb_score,
+                "image_prob": image_prob,
+                "tabular_prob": tabular_prob,
                 "heatmap_url": screening.heatmap_url,
                 "triage_recommendation": screening.triage_recommendation,
+                "input_modality": modality,
+                "model_source": model_source,
             },
             status=status.HTTP_200_OK,
         )
@@ -425,3 +552,4 @@ class ModelsListView(APIView):
 # Backward-compat endpoint names retained.
 class patientDetailView(PatientDetailView):
     pass
+    permission_classes = [AllowAny]

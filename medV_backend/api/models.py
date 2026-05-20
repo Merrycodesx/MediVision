@@ -23,7 +23,6 @@ class User(AbstractUser):
         LOCAL_ADMIN = 'L', _("Administrator_Local")
         AUDITOR = 'A', _("Auditor")
 
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     hospital = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name='users')
     username = models.CharField(max_length=15, null=True, unique=True)
@@ -41,7 +40,6 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
-
     def __str__(self):
         return f"{self.email}"
 
@@ -58,9 +56,7 @@ class Patient(models.Model):
         choices=SexChoices
     )
     hiv_Status = models.BooleanField(default=False)
-    symptoms = ArrayField(
-        models.CharField(max_length=40)
-    )
+    symptoms = models.TextField(default='[]')  # JSON string
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     hospital = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name='patients')
@@ -82,5 +78,20 @@ class Screening(models.Model):
 
     def __str__(self):
         return f"Screening {self.id} - {self.patient.full_name}"
+
+
+class ClinicalData(models.Model):
+    patient = models.OneToOneField(Patient, on_delete=models.CASCADE, related_name='clinical_data')
+    symptoms = models.TextField()  # JSON string
+    risk_factors = models.TextField()  # JSON string
+    age = models.IntegerField()
+    sex = models.CharField(max_length=1, choices=[('M', 'Male'), ('F', 'Female')])
+    smoker = models.BooleanField(default=False)
+    hiv_positive = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Clinical data for {self.patient.full_name}"
     
 

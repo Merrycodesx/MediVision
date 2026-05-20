@@ -9,11 +9,13 @@ All backend REST calls are routed through this module.
                emitting success / failure / no_auth signals.
 """
 
+import os
 import requests
 from PyQt6.QtCore import QThread, pyqtSignal
 
 # ─── Base URL ────────────────────────────────────────────────────────────────
-BASE_URL        = "https://prizm.pythonanywhere.com"
+# Use env override when deployed; default to local backend for development.
+BASE_URL        = os.getenv("MEDIVISION_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 REQUEST_TIMEOUT = 20   # seconds
 
 

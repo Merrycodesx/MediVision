@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 
 export default function Offline() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // Must match SSR: navigator is undefined on the server. Sync onLine only after mount
+  // so the first client paint matches the server HTML (avoids hydration errors).
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
+    setIsOnline(navigator.onLine);
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 

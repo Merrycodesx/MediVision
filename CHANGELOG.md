@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
 ### Added
 - JWT-based authentication system with token obtain and refresh endpoints (`/api/auth/token/`, `/api/auth/token/refresh/`)
 - User registration API (`/api/auth/register/`)
@@ -23,4 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated project structure documentation
 
 ### Fixed
-- Resolved merge conflicts and restored project state after git pull issues
+- Resolved merge conflicts and restored project state after git pull 
+### Added
+- Initial desktop dashboard structure and UI entry (medV-Desktop)

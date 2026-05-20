@@ -47,7 +47,7 @@ class IsAdminOrSelf(BasePermission):
 class PatientPermission(BasePermission):
     """
     Custom permission for Patient detail views:
-    - GET: Allowed for clinicians, radiologists, the patient themselves, and admins.
+    - GET: Allowed for clinicians, radiologists, and admins.
     - PUT/PATCH: Allowed for clinicians and radiologists.
     - DELETE: Allowed only for admins.
     """
@@ -65,3 +65,14 @@ class PatientPermission(BasePermission):
         if request.method == 'DELETE':
             return role == 'L'
         return role in ['C', 'R', 'L']
+        if request.method == 'GET':
+            if user.role in ['C', 'R']:
+                return True
+            if hasattr(obj, 'user') and user == obj.user:  
+                return True
+            return False
+        elif request.method in ['PUT', 'PATCH']:
+            return user.role in ['C', 'R']
+        elif request.method == 'DELETE':
+            return user.role == 'L'
+        return False
